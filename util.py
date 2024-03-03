@@ -42,7 +42,9 @@ class CompanyDirectory:
                         #                 "Q3": "./content/companies/AMD/2022/AMD_2022_10Q_Q3.pdf"
                         #             },
                         #             "10K":  "./content/companies/AMD/2022/AMD_2022_10K.pdf",
-                        #             "index":  "./content/companies/AMD/2022/index"
+                        #             "other": {
+                        #               "<report_name>": "<file location>"
+                        #               }, 
                         #         }
                         #     }
                         # }
