@@ -1,6 +1,7 @@
 # own folders
 test
 output
+content
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

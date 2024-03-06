@@ -62,7 +62,7 @@ class Chatbot(ABC):
 
        
 
-
+""" simple """
 class SimpleChatbot(Chatbot):
 
     system_message = """
@@ -126,7 +126,7 @@ class SimpleChatbot(Chatbot):
             self.update_memory(question, response)
         return response
     
-
+""" Stepback chatbot """
 class MultiChatbot(Chatbot):
 
     fusion_system_message = """
@@ -313,7 +313,7 @@ class MultiChatbot(Chatbot):
         return result_response
 
 
-
+""" fusion """
 class FusionChatbot(Chatbot):
     fusion_system_message = """
         You are a helpful assistant who breaks questions down into smaller questions.
@@ -539,7 +539,7 @@ class FusionChatbot(Chatbot):
 
 
 
-
+""" Simple stepback """
 class PreMultiChatbot(Chatbot):    
     simple_system_message = """
                 You are a financial investment advisor who answers questions

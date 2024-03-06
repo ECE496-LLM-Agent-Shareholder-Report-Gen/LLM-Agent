@@ -1,6 +1,9 @@
 import os
+import json
 from pathlib import Path
 import shutil
+
+from session import Session
 
 
 
@@ -10,7 +13,7 @@ manages the company directory structure of:
         {path}/company/year
 """        
     
-class CompanyDirectory:
+class FileManager:
     def __init__(self, path):
         self.path = path
         self.companies = {}
@@ -313,4 +316,37 @@ class InDirectory:
 
 
                     
+""" Session Manager
+manages the sessions created by the user.
+This includes loading up previous sessions, 
+saving them, and maintaining them """
+class SessionManager:
 
+    def __init__(self, save_file='./saved_session.json'):
+        self.sessions = None
+        self.initialized = False
+        self.save_file = save_file
+    
+    def load(self):
+        ss_list = {}
+        self.sessions = {}
+        try:
+            with open(self.save_file, "r") as json_file:
+                ss_list = json.load(json_file) 
+            for name, ss in ss_list.items():
+                session = Session.from_dict(ss)
+                self.sessions[name] = session
+        except:
+            pass
+        self.initialized = True
+
+    def save(self):
+        ss_list = {}
+        for name, session in self.sessions.items():
+            ss_list[name] = session.to_dict()
+        with open(self.save_file, "w") as json_file:
+            json.dump(ss_list, json_file) 
+    
+    def add_session(self, session):
+
+        self.sessions[session.name] = session

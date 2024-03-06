@@ -1,7 +1,7 @@
 from model_loader import ModelLoader
 from retrievers import BasicRetriever, MultiCompanyYearRetriever
 from pre_processing import IndexGenerator
-from util import CompanyDirectory, InDirectory
+from util import FileManager, InDirectory
 import langchain
 from langchain.memory import ConversationBufferMemory
 
@@ -54,7 +54,7 @@ class Application():
 
         self.cds_path = "/groups/acmogrp/Large-Language-Model-Agent/content/companies"
         self.in_path = "/groups/acmogrp/Large-Language-Model-Agent/content"
-        self.company_directory = CompanyDirectory(self.cds_path)
+        self.company_directory = FileManager(self.cds_path)
         self.in_directory = InDirectory(self.in_path, self.cds_path, [".pdf"], self.index_gen)
         self.prompt = self.default_prompt
         self.active_session = None

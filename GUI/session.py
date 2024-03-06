@@ -1,1 +1,0 @@
-"""Everything pertaining to the sessions for the GUI"""
