@@ -1,164 +1,215 @@
 import os
 import json
+import glob
 from pathlib import Path
 import shutil
 
 from session import Session
 
 
-
-
 """ Company Directory
 manages the company directory structure of:
-        {path}/company/year
+        {path}/company/year. Will hold the following dict:
+mydict = {
+    "AMD": {
+        "2022": {
+            "10Q": {
+                "Q1": {
+                    "file_loc": "./content/companies/AMD/2022/10Q/Q1/AMD_2022_10Q_Q1.pdf",
+                    "index_loc": "./content/companies/AMD/2022/10Q/Q1/index"
+                },
+                "Q2": {
+                    "file_loc": "./content/companies/AMD/2022/10Q/Q2/AMD_2022_10Q_Q2.pdf",
+                    "index_loc": "./content/companies/AMD/2022/10Q/Q2/index"
+                },
+                "Q3": {
+                    "file_loc": "./content/companies/AMD/2022/10Q/Q3/AMD_2022_10Q_Q3.pdf",
+                    "index_loc": "./content/companies/AMD/2022/10Q/Q3/index"
+                },
+            },
+            "10K":  {
+                "file_loc": "./content/companies/AMD/2022/10K/AMD_2022_10K.pdf",
+                "index_loc": "./content/companies/AMD/2022/10K/index"
+            },
+            "other": {
+                "report_type": "<report_type>",
+                "file_loc": "<file_loc>",
+                "index_loc": "<index_loc",
+            }, 
+        },
+        "2021": {
+            "10Q": {
+                "Q1": {
+                    "file_loc": "./content/companies/AMD/2021/10Q/Q1/AMD_2021_10Q_Q1.pdf",
+                    "index_loc": "./content/companies/AMD/2021/10Q/Q1/index"
+                },
+                "Q2": {
+                    "file_loc": "./content/companies/AMD/2021/10Q/Q2/AMD_2021_10Q_Q2.pdf",
+                    "index_loc": "./content/companies/AMD/2021/10Q/Q2/index"
+                },
+                "Q3": {
+                    "file_loc": "./content/companies/AMD/2021/10Q/Q3/AMD_2021_10Q_Q3.pdf",
+                    "index_loc": "./content/companies/AMD/2021/10Q/Q3/index"
+                },
+            },
+            "10K":  {
+                "file_loc": "./content/companies/AMD/2021/10K/AMD_2021_10K.pdf",
+                "index_loc": "./content/companies/AMD/2021/10K/index"
+            },
+            "other": {
+                "report_type": "<report_type>",
+                "file_loc": "<file_loc>",
+                "index_loc": "<index_loc",
+            }, 
+        }
+    },
+    "INTC": {
+        "2022": {
+            "10Q": {
+                "Q1": {
+                    "file_loc": "./content/companies/INTC/2022/10Q/Q1/INTC_2022_10Q_Q1.pdf",
+                    "index_loc": "./content/companies/INTC/2022/10Q/Q1/index"
+                },
+                "Q2": {
+                    "file_loc": "./content/companies/INTC/2022/10Q/Q2/INTC_2022_10Q_Q2.pdf",
+                    "index_loc": "./content/companies/INTC/2022/10Q/Q2/index"
+                },
+                "Q3": {
+                    "file_loc": "./content/companies/INTC/2022/10Q/Q3/INTC_2022_10Q_Q3.pdf",
+                    "index_loc": "./content/companies/INTC/2022/10Q/Q3/index"
+                },
+            },
+            "10K":  {
+                "file_loc": "./content/companies/INTC/2022/10K/INTC_2022_10K.pdf",
+                "index_loc": "./content/companies/INTC/2022/10K/index"
+            },
+            "other": {
+                "report_type": "<report_type>",
+                "file_loc": "<file_loc>",
+                "index_loc": "<index_loc",
+            }, 
+        },
+        "2021": {
+            "10Q": {
+                "Q1": {
+                    "file_loc": "./content/companies/INTC/2021/10Q/Q1/INTC_2021_10Q_Q1.pdf",
+                    "index_loc": "./content/companies/INTC/2021/10Q/Q1/index"
+                },
+                "Q2": {
+                    "file_loc": "./content/companies/INTC/2021/10Q/Q2/INTC_2021_10Q_Q2.pdf",
+                    "index_loc": "./content/companies/INTC/2021/10Q/Q2/index"
+                },
+                "Q3": {
+                    "file_loc": "./content/companies/INTC/2021/10Q/Q3/INTC_2021_10Q_Q3.pdf",
+                    "index_loc": "./content/companies/INTC/2021/10Q/Q3/index"
+                },
+            },
+            "10K":  {
+                "file_loc": "./content/companies/INTC/2021/10K/INTC_2021_10K.pdf",
+                "index_loc": "./content/companies/INTC/2021/10K/index"
+            },
+            "other": {
+                "file_loc": "<file_loc>",
+                "index_loc": "<index_loc",
+            }, 
+        }
+    }
+} 
 """        
     
 class FileManager:
     def __init__(self, path):
         self.path = path
-        self.companies = {}
-        self.get_companies()
 
     # gets companies using predefined directory structure
+    def load(self):
+        self.dir_dict = self._create_dict(self.path)
+
+    def move_file(self, src_file, company_name, year, report_type, quarter=None):
+        # Construct the new directory path
+        new_dir = os.path.join(self.path, company_name, str(year), report_type)
+        if quarter:
+            new_dir = os.path.join(new_dir, quarter)
+
+        # Create the new directory if it doesn't exist
+        os.makedirs(new_dir, exist_ok=True)
+
+        # Construct the new file name
+        new_file_name = f"{company_name}_{year}_{report_type}"
+        if quarter:
+            new_file_name += f"_{quarter}"
+        new_file_name += ".pdf"
+
+        # Delete any existing PDF file in the directory
+        for file in glob.glob(os.path.join(new_dir, "*.pdf")):
+            os.remove(file)
+
+        # Construct the new file path
+        new_file_path = os.path.join(new_dir, new_file_name)
+
+        # Move and rename the file
+        shutil.move(src_file, new_file_path)
+        self.load()
+        return new_file_path
+
+    def _create_dict(self, path):
+        dir_dict = {}
+        for item in os.listdir(path):
+            item_path = os.path.join(path, item)
+            if os.path.isdir(item_path):
+                if item == 'index':
+                    dir_dict['index_loc'] = item_path
+                else:
+                    dir_dict[item] = self._create_dict(item_path)
+            elif item.endswith('.pdf'):
+                dir_dict['file_loc'] = item_path
+        return dir_dict
+    
     def get_companies(self):
-        # all directories under {path}
-        for company in os.listdir(self.path):
-    
-            # only take directories, no files
-            if os.path.isdir(os.path.join(self.path, company)):
-                # list of tuples (year, year_path)
-                self.companies[company] = {}
+        assert isinstance(self.dir_dict, dict)
+        return list(self.dir_dict.keys())
 
-                # look for all the years corresponding to this copmany
-                for year in os.listdir(os.path.join(self.path, company)):
-    
-                    # make sure it is a directory
-                    if os.path.isdir(os.path.join(self.path, company, year)):
-                        self.companies[company][year] = {}
-                        # make sure it has atleast 1 file
-                        # comps = {
-                        #     "AMD": {
-                        #         "2022": {
-                        #             "10Q": {
-                        #                 "Q1": "./content/companies/AMD/2022/AMD_2022_10Q_Q1.pdf",
-                        #                 "Q2": "./content/companies/AMD/2022/AMD_2022_10Q_Q2.pdf",
-                        #                 "Q3": "./content/companies/AMD/2022/AMD_2022_10Q_Q3.pdf"
-                        #             },
-                        #             "10K":  "./content/companies/AMD/2022/AMD_2022_10K.pdf",
-                        #             "other": {
-                        #               "<report_name>": "<file location>"
-                        #               }, 
-                        #         }
-                        #     }
-                        # }
-                        for pdf_or_index in os.listdir(os.path.join(self.path, company, year)):
-                            # check if index
-                            if pdf_or_index == 'index' and os.path.isdir(os.path.join(self.path, company, year, pdf_or_index)):
-                                self.companies[company][year][pdf_or_index] = os.path.join(self.path, company, year, pdf_or_index)
+    def get_years(self, companies):
+        if companies:
+            return sorted(set.intersection(*(set(self.dir_dict[company].keys()) for company in companies)))
+        return []
 
-                            # do the files
-                            if os.path.isfile(os.path.join(self.path, company, year, pdf_or_index)):
-                                # check if 10Q
-                                if pdf_or_index.find("10Q") != -1:
-                                    # create dict if not already exisiting
-                                    if not "10Q" in self.companies[company][year]:
-                                        self.companies[company][year]["10Q"] = {}
-                                    if pdf_or_index.find("Q1") != -1:
-                                        self.companies[company][year]["10Q"]["Q1"] = pdf_or_index
-                                    elif pdf_or_index.find("Q2") != -1:
-                                        self.companies[company][year]["10Q"]["Q2"] = pdf_or_index
-                                    elif pdf_or_index.find("Q3") != -1:
-                                        self.companies[company][year]["10Q"]["Q3"] = pdf_or_index
-                                elif pdf_or_index.find("10K") != -1:
-                                    self.companies[company][year]["10K"] = pdf_or_index
+    def get_report_types(self, companies, years):
+        if companies and years:
+            return sorted(set.intersection(*(set(self.dir_dict[company][year].keys()) for company in companies for year in years)))
+        return []
 
-    # print all the companies available along with years and report types
-    def print_companies_all(self):
-        for company in sorted(self.companies.keys()):
-            if len(self.companies[company].keys()) > 0:
-                print(f"{company}:")
-                for year in sorted(self.companies[company].keys()):
-                    report_types = []
-                    if "10Q" in self.companies[company][year]:
-                        for Q_type in self.companies[company][year]["10Q"].keys():
-                            report_types.append(Q_type)
-                    if "10K" in self.companies[company][year]:
-                        report_types.append("10K")
-                    report_types.sort()
-                    print(f"  {year}: {', '.join(report_types)}")
-    
-    
-    # get years for the company
-    def get_years_for_company(self, company):
-        company = company.upper()
-        if company in self.companies:
-            return sorted([year[0] for year in self.companies[company]], reverse=True)
+    def get_quarters(self, companies, years, report_types):
+        keys = [set(self.dir_dict[company][year][report_type].keys()) for company in companies for year in years for report_type in report_types if report_type == '10Q' and report_type in self.dir_dict[company][year]]
+        if keys:
+            return sorted(set.intersection(*keys))
         else:
             return []
 
+    def get_file_path(self, company, year, report_type, quarter=None):
+        if quarter is not None:
+            search_path = os.path.join(self.path, company, year, report_type, quarter)
+        else:
+            search_path = os.path.join(self.path, company, year, report_type)
 
-    # get possible years with the given companies
-    def get_years_intersection(self, companies):
-         # list of sets
-        years = []
-        for company in companies:
-            print(company)
-            if company in self.companies:
-                years.append(set(self.companies[company]))
+        for root, dirs, files in os.walk(search_path):
+            for file in files:
+                if file.endswith(".pdf"):
+                    return os.path.join(root, file)
 
-        year_set = set()
-        for year_obj in years:
-            temp = set([year for year in year_obj])
-            if not year_set:
-                year_set = temp
-            else:
-                year_set = temp & year_set
-        intersection = sorted(list(year_set), reverse=True)
-        print(f"Possible years for {', '.join(companies)} are {', '.join(intersection)}")
-        return intersection
+        return None
 
-
-    # get years user wants to evaluate on given the available years 
-    def get_years_for_companies(self, years):
-       
-        retries = 3
-        while retries:
-            start_year = input("Enter a start year: ")
-            end_year = input("Enter an end year: ")
-            if start_year.isdigit() and end_year.isdigit():
-                start_year = int(start_year)
-                end_year = int(end_year)
-                print("start year: ", start_year)
-                print("end year: ", end_year)
-                if start_year <= end_year and str(start_year) in years and str(end_year) in years:
-                    return [str(year) for year in range(start_year, end_year+1)]
-                else:
-                    print("somehow, not found: ", years)
-            print("Invalid input. Please try again.")
-            retries -= 1
-        
-        if retries == 0:
-            print("We were unable to process your input, please try again.")
+    def get_index(self, company, year, report_type, quarter=None):
+        dir_path = None
+        if quarter!=None:
+            dir_path = os.path.join(self.path, company, year, report_type, quarter, "index")
+        else:
+            dir_path = os.path.join(self.path, company, year, report_type, "index")
+        if os.path.isdir(dir_path):
+            return dir_path
+        else:
             return None
 
-
-    # this method works
-    # allows user to select the companies they want 
-    def get_companies_from_user(self):
-        companies = []
-        while True:
-            company = input("Enter a company name (or 'done' to finish): ")
-            if company.lower() == 'done':
-                break
-            elif company.upper() in self.companies:
-                companies.append(company.upper())
-            else:
-                print(f"Company '{company}' not found.")
-        return companies
-
-
-    def get_index(self, company, year):
-        return os.path.join(self.path, company, year, "index")
 
     # create embeddings for all companies, years in directory structure
     # if company is specified, generate word embeddings only for that company
@@ -325,10 +376,12 @@ class SessionManager:
     def __init__(self, save_file='./saved_session.json'):
         self.sessions = None
         self.initialized = False
+        self.active_session = None
         self.save_file = save_file
     
     def load(self):
         ss_list = {}
+        print("loading sessions...")
         self.sessions = {}
         try:
             with open(self.save_file, "r") as json_file:
@@ -336,8 +389,10 @@ class SessionManager:
             for name, ss in ss_list.items():
                 session = Session.from_dict(ss)
                 self.sessions[name] = session
-        except:
-            pass
+        except Exception as e:
+            print(e)
+        print("done loading sessions: ", self.sessions)
+
         self.initialized = True
 
     def save(self):
@@ -350,3 +405,6 @@ class SessionManager:
     def add_session(self, session):
 
         self.sessions[session.name] = session
+    
+    def set_active_session(self, session):
+        self.active_session = session

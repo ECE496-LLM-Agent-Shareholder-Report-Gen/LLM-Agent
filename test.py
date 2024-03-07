@@ -1,19 +1,18 @@
-from session import Session
-from util import SessionManager
+from util import FileManager
 
-ses = Session()
-ses.add_report("amd", '2022', '10k', file_location='.')
-ses_dict = ses.to_dict()
-ses2 = Session.from_dict(ses_dict)
-ses2_dict = ses2.to_dict()
-print(ses_dict)
-print("="*20)
-print(ses2_dict)
-sm = SessionManager()
-sm.load()
-for s in sm.sessions.values():
-    print(s.to_dict())
-# sm.add_session(ses)
+def dict_to_list( d, parent_keys=[]):
+    lst = []
+    for k, v in d.items():
+        new_keys = parent_keys + [k]
+        if isinstance(v, dict):
+            lst.extend(dict_to_list(v, new_keys))
+        else:
+            lst.append({"file_loc": v, "index_loc": "_".join(new_keys)})
+    return lst
 
-# sm.save()
+fm = FileManager('./content/companies')
+fm.load()
 
+ll = dict_to_list(fm.dir_dict)
+for l in ll:
+    print(l)

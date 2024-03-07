@@ -1,5 +1,5 @@
 from model_loader import ModelLoader
-from retrievers import BasicRetriever, MultiCompanyYearRetriever
+from retrievers import BasicRetriever, MultiCompanyYearRetriever, PDR
 from pre_processing import IndexGenerator
 from util import FileManager, InDirectory
 import langchain
@@ -27,6 +27,9 @@ class Session():
 
         if mode == 'multi':
             self.retriever = MultiCompanyYearRetriever(self.companies, self.years,cds_path, llm, embeddings)
+        elif mode == 'pdr':
+            reports=-1
+            self.retriever = PDR(llm, reports)
         else:
             self.retriever = BasicRetriever(llm, self.index, embeddings)
 

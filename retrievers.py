@@ -1,12 +1,22 @@
+from multiprocessing import context
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
-from langchain.vectorstores import FAISS
+from langchain.vectorstores import FAISS, Chroma
 from langchain.agents.agent_toolkits import (
     VectorStoreInfo,
     VectorStoreRouterToolkit,
     create_vectorstore_router_agent,
 )
+from langchain.schema import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.storage import InMemoryStore
+from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain.retrievers import ParentDocumentRetriever
+from langchain.chains import RetrievalQA
+
+from model_loader import EmbeddingsLoader
+
 import os
 
 class MultiCompanyYearRetriever:
@@ -77,4 +87,31 @@ class BasicRetriever:
         response = self.llm_chain.run(context=context, question=question)
         return response
 
+class PDR:
+    def __init__(self, llm, docs):
+        parent_splitter = RecursiveCharacterTextSplitter(chunk_size=2000)
+        child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
+        store = InMemoryStore()
+        self.llm = llm
+        embeddings_loader=EmbeddingsLoader
+        bge_embeddings=embeddings_loader.load_bge
+        vectorstore=Chroma(
+            collection_name="parents",
+            embedding_function=bge_embeddings
+        )
 
+        self.retriever = ParentDocumentRetriever(
+            vectorstore=vectorstore,
+            docstore=store,
+            child_splitter=child_splitter,
+            parent_splitter=parent_splitter
+        )
+    
+    def answer(self, question):
+        qa = RetrievalQA.from_chain_type(
+            llm=self.llm,
+            chain_type="stuff",
+            retriever=self.retriever
+        )
+        response = qa.run(question)
+        return response

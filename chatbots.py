@@ -126,6 +126,11 @@ class SimpleChatbot(Chatbot):
             self.update_memory(question, response)
         return response
     
+    def stream(self, question):
+        response = self.chain.stream({"question": question})
+
+        return response
+    
 """ Stepback chatbot """
 class MultiChatbot(Chatbot):
 
