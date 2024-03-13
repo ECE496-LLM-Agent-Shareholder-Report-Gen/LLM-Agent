@@ -101,14 +101,22 @@ class LLMModelLoader:
             verbose=False, # Verbose is required to pass to the callback manager
             **kwargs
         )
-    def load_ollama(self,model="llama-2", **kwargs):
-        return ChatOllama(model=model, **kwargs)
 
+    def load_ollama(self,model="llama2", **kwargs):
+        callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+
+        return ChatOllama(model=model, callback_manager=callback_manager, **kwargs)
+    """
+    def load_ollama(self,model="llama-2-13b-chat", **kwargs):
+        callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+
+        return ChatOllama(model=model, callback_manager=callback_manager, **kwargs)
+"""
    
 
 class EmbeddingsLoader:
     def __init__(self, **kwargs):
-        embeddings_path = "/groups/acmogrp/Large-Language-Model-Agent/language_models/word_embeddings/BAAI_bge-large-en-v1.5-ft"
+        embeddings_path = "/groups/acmogrp/Large-Language-Model-Agent/language_models/word_embeddings/BAAI_bge-large-en-v1.5"
        
         real_embeddings_args = {
             "model_kwargs": {'device': 'cuda'},

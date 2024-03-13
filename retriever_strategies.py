@@ -20,7 +20,6 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
             question = input["question"]
         else:
             question = input
-
         relevant_documents = None
         for strategy in self.strategies:
             relevant_documents = strategy.retrieve_context(question=question, relevant_documents=relevant_documents, *args, **kwargs)
@@ -58,7 +57,7 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
     
 
 class ReRankerRetrieverStrategy(RetrieverStrategy):
-    def __init__(self, vectorstore, cross_encoder, filters={}, init_k=100):
+    def __init__(self,  cross_encoder,vectorstore=None, filters={}, init_k=100):
         self.vectorstore = vectorstore
         self.cross_encoder = cross_encoder
         self.filters = filters
@@ -73,8 +72,7 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
             raise Exception("Error: No vectorstore given!")
         if relevant_documents == None:
             # get relevant documents
-            relevant_documents = vs.similarity_search(question,  k=self.init_k *args, **kwargs)
-
+            relevant_documents = vs.similarity_search(question,  k=self.init_k, *args, **kwargs)
         scores = self.cross_encoder.predict([[question, document.page_content] for document in relevant_documents])
 
         for x in range(len(scores)):

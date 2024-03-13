@@ -1,5 +1,5 @@
 import streamlit as st
-from GUI.llm_select_renderer import LLMRenderer
+from GUI.session_renderer import BenchmarkRenderer
 from GUI.shared import load_global_singleton, navbar
 
 if not "global_singleton" in st.session_state:
@@ -8,9 +8,8 @@ if not "global_singleton" in st.session_state:
 else: 
     global_singleton = st.session_state["global_singleton"]
 
-#print("global ama model_config_page de:", global_singleton.__dict__)
-
+print("global:", global_singleton.__dict__)
 navbar(global_singleton)
 
-llm = LLMRenderer(global_singleton)
-llm.render()
+session = BenchmarkRenderer(global_singleton)
+session.render()

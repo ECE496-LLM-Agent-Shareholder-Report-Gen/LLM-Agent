@@ -11,6 +11,13 @@ class GlobalSingleton:
         self.session_manager = SessionManager(session_path)
         self.index_generator = IndexGenerator()
     
+        #vars for llm load:
+        self.llm_path = None
+        self.llm_type = None
+        self.hug_llm_name = None
+        self.hug_api_key = None
+        self.opai_api_key = None
+        
     def load_file_manager(self):
         self.file_manager.load()
     

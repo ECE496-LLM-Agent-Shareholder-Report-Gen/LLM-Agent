@@ -13,7 +13,6 @@ from retriever_strategies import CompositeRetrieverStrategy, SimpleRetrieverStra
 holds the state of the session, which represents
 a user-LLM interaction """
 class Session:
-
     def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, conversation_history=[], reports=[], memory_enabled=False, k=None, k_i=None):
         self.conversation_history = conversation_history
         self.reports = reports
@@ -31,7 +30,8 @@ class Session:
         self.memory_enabled = memory_enabled
         self.vectorstores = {}
         self.initialized = False
-    
+     
+
     def initialize(self, index_generator, file_manager, llm, embeddings):
         valid_retrieval_strategies = ["Simple Retrieval Strategy"]
         valid_llm_chains = ["Simple Chain"]

@@ -73,6 +73,7 @@ class SessionRenderer:
         st.session_state["widget_key"] = str(randint(1000, 100000000))
         st.rerun()
 
+  
     # renders the component that lets users choose what reports to query on
     def render_report_loader(self):
         st.subheader('Choose your Shareholder Reports', divider='grey')
@@ -331,7 +332,6 @@ class SessionRenderer:
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
             session = Session(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
-            print(session.__dict__)
             self.global_singleton.session_manager.add_session(session)
             self.global_singleton.session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton

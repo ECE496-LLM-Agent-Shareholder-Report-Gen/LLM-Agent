@@ -16,7 +16,8 @@ class ChatRenderer:
             print("Chatting with active session: ", self.session)
             if not self.session.initialized:
                 print("initialized session!")
-                self.session.initialize(global_singleton.index_generator, global_singleton.file_manager, global_singleton.llm, global_singleton.embeddings)
+                with st.spinner("initializing session..."):
+                    self.session.initialize(global_singleton.index_generator, global_singleton.file_manager, global_singleton.llm, global_singleton.embeddings)
         else:
             print("no active session!")
             st.switch_page("streamlit_app.py")

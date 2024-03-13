@@ -1,18 +1,17 @@
-from util import FileManager
+import re
 
-def dict_to_list( d, parent_keys=[]):
-    lst = []
-    for k, v in d.items():
-        new_keys = parent_keys + [k]
-        if isinstance(v, dict):
-            lst.extend(dict_to_list(v, new_keys))
-        else:
-            lst.append({"file_loc": v, "index_loc": "_".join(new_keys)})
-    return lst
-
-fm = FileManager('./content/companies')
-fm.load()
-
-ll = dict_to_list(fm.dir_dict)
-for l in ll:
-    print(l)
+unparsed_questions = """Sure, I can help with that!\n \
+    * What was the companies revenue in 2022 (AMD_2022_10K)\n \
+    * What was the companies net income in 2021 (INTC_2021_10Q_1)\n \
+    """
+tools = ["AMD_2022_10K", "INTC_2021_10Q_1", "AMD_2021_10K"]
+leftovers = []
+lines = unparsed_questions.split("\n")
+for line in lines:
+    for report in tools:
+        if report in line:
+            r_match = [r_part for r_part in report.split("_")]
+            question = re.sub(rf".{re.escape(report)}.", "", line)
+            r_match.append(question)
+            leftovers.append(tuple(r_match))
+print(leftovers)
