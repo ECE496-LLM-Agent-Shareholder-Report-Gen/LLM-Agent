@@ -6,15 +6,12 @@ class BenchmarkEvalRenderer:
         self.global_singleton = global_singleton
         if global_singleton.benchmark_session_manager and global_singleton.benchmark_session_manager.active_session:
             self.session = global_singleton.benchmark_session_manager.active_session 
-            print("Evaluation active session: ", self.session)
             if not self.session.initialized:
                 with st.spinner("initializing session..."):
                     self.session.initialize(global_singleton.index_generator, global_singleton.file_manager, global_singleton.llm, global_singleton.embeddings)
-            print("initialized session!")
             if not f"benchmark_{self.session.name}" in st.session_state:
-                st.session_state[f"benchmark_{self.session.name}"] = { "curr_idx": 1, "init": False}
+                st.session_state[f"benchmark_{self.session.name}"] = { "curr_idx": 0, "init": False}
         else:
-            print("no active session!")
             st.switch_page("streamlit_app.py")
 
     def render(self):
@@ -91,11 +88,11 @@ class BenchmarkEvalRenderer:
     """ renders the questions and answers """
     def render_question_expected(self):
         st.subheader('Questions and Answers', divider='grey')
-        run_test = st.button("Run Tests")
-        if run_test:
-            st.session_state[f"benchmark_{self.session.name}"]["init"] = True
-        print("Currently on question: ", st.session_state[f"benchmark_{self.session.name}"]["curr_idx"])
-        print("QAE: ", self.session.question_answer_expected)
+        if not st.session_state[f"benchmark_{self.session.name}"]["init"]:
+            run_test = st.button("Run Tests")
+            if run_test:
+                st.session_state[f"benchmark_{self.session.name}"]["init"] = True
+                st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = 1
         init = st.session_state[f"benchmark_{self.session.name}"]["init"]
         containers = [st.container(border=True) for x in range(len(self.session.question_answer_expected.items()))]
         empty_containers = [st.empty() for x in range(len(self.session.question_answer_expected.items()))]
@@ -104,46 +101,50 @@ class BenchmarkEvalRenderer:
         container_to_stream_response_qae = None
         container_to_stream_response_cidx = 0
 
-        container_to_stream_response_qid = 1
+        container_to_stream_response_qid = 0
 
         for idx, (qid, qae) in enumerate(self.session.question_answer_expected.items()):
             curr_processing_qae =  st.session_state[f"benchmark_{self.session.name}"]["curr_idx"]
             with empty_containers[idx]: # running
                 with containers[idx]:
                     if qid == curr_processing_qae and init:
-                        st.markdown(f'<b><u>Q&A #{qid}</u> :running:</b>', unsafe_allow_html=True)
                         container_to_stream_response_qae = qae
                         container_to_stream_response = empty_containers[idx]
                         container_to_stream_response_qid = qid
                         container_to_stream_response_cidx = idx
                     elif qid < curr_processing_qae and init: #already ran
                         st.markdown(f'<b><u>Q&A #{qid}</u> :white_check_mark:</b>', unsafe_allow_html=True)
-
-                    elif qid > curr_processing_qae: # not yet run
-                        st.markdown(f'<b><u>Q&A #{qid}</u> :clock2:</b>', unsafe_allow_html=True)
-                    
-                    self.render_qae_box(question=qae.question,
+                        self.render_qae_box(question=qae.question,
                                             expected=qae.expected,
                                             answer=qae.answer,
                                             similarity_score=qae.similarity_score,
                                             response_time=qae.response_time)
+                    elif qid > curr_processing_qae or not init: # not yet run
+                        st.markdown(f'<b><u>Q&A #{qid}</u> :clock2:</b>', unsafe_allow_html=True)
                     
+                        self.render_qae_box(question=qae.question,
+                                            expected=qae.expected,
+                                            answer=qae.answer,
+                                            similarity_score=qae.similarity_score,
+                                            response_time=qae.response_time)
         if container_to_stream_response:
             with container_to_stream_response:
-                temp_con = containers[container_to_stream_response_cidx] = st.container(border=True)
+                temp_con =  st.container(border=True)
                 with temp_con:
-                    self.render_qae_box(question=qae.question,
-                                            expected=qae.expected)
-                    stream = self.session.chatbot.stream(container_to_stream_response_qae.question)
+                    st.markdown(f'<b><u>Q&A #{container_to_stream_response_qid}</u> :running:</b>', unsafe_allow_html=True)
+                    self.render_qae_box(question=container_to_stream_response_qae.question,
+                                            expected=container_to_stream_response_qae.expected)
                     col1, col2 = st.columns([0.2, 0.8])
                     with col1:
                         st.markdown(f"<b>Answer:</b>", unsafe_allow_html=True)
                     with col2:
-                        response = st.write_stream(stream)
-                        if response:
+                        final_response, score, response_time = self.session.chatbot.render_st_with_score(container_to_stream_response_qae.question, self.global_singleton.cross_encoder)
+                        if final_response:
                             self.session.update_qae(id=container_to_stream_response_qid, 
                                                     question=container_to_stream_response_qae.question,
-                                                    answer=response,
-                                                    expected=container_to_stream_response_qae.expected)
+                                                    answer=final_response,
+                                                    expected=container_to_stream_response_qae.expected,
+                                                    similarity_score=score,
+                                                    response_time=response_time)
                             st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] += 1
                             st.rerun()

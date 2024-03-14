@@ -32,8 +32,6 @@ class GlobalSingleton:
     llm = None
     embeddings = None
     cross_encoder = None
-    embeddings = None
-    cross_encoder = None
     file_manager = None
     index_generator = None
     chat_session_manager = None
@@ -41,11 +39,16 @@ class GlobalSingleton:
     content_path = None
     chat_session_path = None
     benchmark_session_path = None
+    #vars for llm_load
     llm_path = None
     llm_type = None
     hug_llm_name = None
     hug_api_key = None
     opai_api_key = None
+    #vars for embedding_load
+    embedding_type = None
+    opai_embedding_name = None
+    hug_embedding_name = None #todo: or store the path tbd
 
     def __new__(cls, content_path='./content/companies', chat_session_path='./saved_sessions.json', benchmark_session_path='./benchmark_session.json'):
         if cls._instance is None:
@@ -66,6 +69,10 @@ class GlobalSingleton:
             cls._instance.hug_llm_name = None
             cls._instance.hug_api_key = None
             cls._instance.opai_api_key = None
+
+            cls._instance.embedding_type = None
+            cls._instance.opai_embedding_name = None
+            cls._instance.hug_embedding_name = None
         print(cls._instance, cls._instance.llm)
         return cls._instance
         

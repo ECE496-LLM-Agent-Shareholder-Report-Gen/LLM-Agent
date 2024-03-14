@@ -1,5 +1,6 @@
 # Langchain imports
 import math
+import time
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
@@ -9,6 +10,8 @@ from abc import ABC, abstractmethod
 
 from subquery_generator import SubQueryGenerator
 from template_formatter import LlamaTemplateFormatter
+
+import streamlit as st
 
 class Chatbot(ABC):
 
@@ -27,6 +30,22 @@ class Chatbot(ABC):
     @abstractmethod
     def invoke(self, question):
         pass
+
+    @abstractmethod
+    def st_render(self, question):
+        pass
+
+    def render_st_with_score(self, question, cross_encoder=None):
+        response = self.st_render(question)
+        score = None
+        start_time = time.time_ns()
+        if cross_encoder:
+            score = cross_encoder.predict([question, response])
+        stop_time = time.time_ns()
+        duration = stop_time - start_time
+        duration_s = duration/1e9
+        return response, score, duration_s
+
 
     def update_memory(self, question, answer):
         # remove any curly braces from question and answer
@@ -75,14 +94,14 @@ class SimpleChatbot(Chatbot):
                 This source should include the company, year, the report type, and page number.
                 """
 
-    def __init__(self, retriever_strategy, llm, *args, **kwargs):
+    def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
         super().__init__(retriever_strategy, llm, *args, **kwargs)
         self.parser = StrOutputParser()
         self.template = self.template_formatter.init_template(
             system_message= self.system_message,
             instruction=self.instruction
         )
-
+        self.retriever_strategy.set_vectorstore (vectorstore)
         self.input_variables = ["question", "context"]
         
         self.update_chain()
@@ -123,9 +142,14 @@ class SimpleChatbot(Chatbot):
         return response
     
     def stream(self, question):
-        response = self.chain.stream({"question": question})
-
+        return self.chain.stream({"question": question})
+    
+    """ render llm st response """
+    def st_render(self, question):
+        stream = self.stream(question)
+        response = st.write_stream(stream)
         return response
+    
     
 """ FusionChatbot """
 class FusionChatbot(Chatbot):
@@ -134,7 +158,7 @@ class FusionChatbot(Chatbot):
         You are a helpful assistant. Answer questions given the context. \
         Make sure to source where you got information from (given in the context). \
         This source should include the company, year, the report type, (quarter if \
-        possible) and page number.
+        possible) and page number. 
         """
 
     result_instruction = """
@@ -186,6 +210,40 @@ class FusionChatbot(Chatbot):
         if self.memory_active:
             self.update_memory(question, result_response)
         return result_response
+
+    def stream_sub_query_response(self, question):
+        return self.sub_query_generator.stream(question)
+    
+    def get_context(self, sub_query_response):
+        context = self.sub_query_generator.retriever_multicontext(sub_query_response)
+        return context
+    
+    def stream_result_response(self, question, context):
+        return self.result_chain.stream({"context": context, "question": question})
+    
+    """ render llm st response """
+    def st_render(self, question):
+        all_responses = []
+
+        # generate sub queries
+        sub_query_stream = self.stream_sub_query_response(question)
+
+        sub_query_response = st.write_stream(sub_query_stream)
+        all_responses.append(sub_query_response)
+
+        # check context
+        context = self.valid_context(sub_query_response)
+        
+        if context == None:
+            all_responses.append("Failed to retrieve context, we might not have been able to parse the LLM's sub queries, pleast try again.")
+        else:
+            final_stream = self.stream_result_response(question, context)
+            final_stream_response = st.write_stream(final_stream)
+            all_responses.append(final_stream_response)
+
+        full_response = "\n\n".join(all_responses)
+
+        return full_response
 
 
 """ StepbackChatbot """
@@ -313,10 +371,80 @@ class StepbackChatbot(Chatbot):
             self.update_memory(question, response)
         return response
 
+    def stream_sub_query_gen(self, question):
+        return self.sub_query_generator.stream(question)
+    
+    def stream_sub_query_responses(self, sub_query_response):
+        # get the matches
+        all_matches =  self.sub_query_generator.parse_questions(sub_query_response)
+        questions = [match[-1] for match in all_matches]
+
+        # answer the broken down questions
+        all_streams = self.answer_chain.batch(all_matches)
+
+        return list(zip(all_streams, questions))
+    
+    def stream_final_response(self, question, sub_queries, responses):
+        temp_mem = list(zip(sub_queries, responses))
+        if temp_mem == None or len(temp_mem) == 0:
+            print("Oops! something went wrong")
+            return "N/A"
+        result_template = self.template_formatter.init_template_from_memory(
+            system_message=self.result_system_message,
+            instruction=self.result_instruction,
+            memory=temp_mem
+        )
+        result_prompt =  PromptTemplate(template=result_template, input_variables=["question"])
+
+        result_chain = (
+            { 
+             "question": RunnablePassthrough()
+             }
+            | result_prompt
+            | self.llm
+            | self.parser
+        )
+
+        return result_chain.stream(question)
+    
+    """ Render stepback llm chain response """
+    def st_render(self, question):
+        all_responses = []
+
+        # generate sub queries
+        sub_query_gen_stream = self.stream_sub_query_gen(question)
+        sub_query_response = st.write_stream(sub_query_gen_stream)
+
+        all_responses.append(sub_query_response)
+
+        # answer each sub query
+        sub_query_responses_streams_question = self.stream_sub_query_responses(sub_query_response)
+
+        sub_queries = [q for s, q in sub_query_responses_streams_question]
+        sub_query_answers = []
+
+        for stream, sub_query in sub_query_responses_streams_question:
+            st.write(f"<b>{sub_query}:</b>", unsafe_allow_html=True)
+            sub_query_answer = st.write_stream(stream)
+            sub_query_answers.append(sub_query_answer)
+            all_responses.append(f"{sub_query}\n{sub_query_answer}")
+
+        # get final result
+        final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
+        final_response = st.write_stream(final_stream)
+
+        all_responses.append(final_response)
+
+        full_response = "\n\n".join(all_responses)
+
+        return full_response
+
+
+        
 
 
 """ Simple stepback """
-class PreMultiChatbot(Chatbot):    
+class SimpleStepbackChatbot(Chatbot):    
     simple_system_message = """
                 You are a financial investment advisor who answers questions
                 about shareholder reports. You will be given a context and will answer the question using that context.
@@ -385,16 +513,22 @@ class PreMultiChatbot(Chatbot):
 
     def get_multi_context(self, question):
         context_list = []
-
+        k_left = self.max_k
         for company, company_data in self.vectorstores.items():
+            k = self.k
+            if k_left <= 0: # cant do anything more...
+                break
+            if k_left <= k: 
+                k = k_left
+
             for year, year_data in company_data.items():
                 for report_type, report_type_data in year_data.items():
                     if report_type == "10K":
-                        context = self.retriever_strategy.retrieve_context(question, vectorstore=report_type_data, k=self.k)
+                        context = self.retriever_strategy.retrieve_context(question, vectorstore=report_type_data, k=k)
                         context_list.append(context)
                     elif report_type == "10Q":
                         for quarter, quarter_data in report_type_data.items():
-                            context = self.retriever_strategy.retrieve_context(question, vectorstore=quarter_data, k=self.k)
+                            context = self.retriever_strategy.retrieve_context(question, vectorstore=quarter_data, k=k)
                             context_list.append(context)
         return "\n\n".join(context_list)
         
@@ -404,8 +538,8 @@ class PreMultiChatbot(Chatbot):
 
      
         self.simple_chain = (
-             { "context": itemgetter("context"), 
-              "question": itemgetter("question")}
+             { "context": RunnableLambda(self.get_multi_context), 
+              "question": RunnablePassthrough()}
              | self.simple_prompt
              | self.llm
              | self.parser
@@ -413,8 +547,16 @@ class PreMultiChatbot(Chatbot):
 
 
     def invoke(self, question):
-        context = self.get_multi_context(question)
-        response = self.simple_chain.invoke({"question": question, "context": context})
+        response = self.simple_chain.invoke(question)
         if self.memory_active:
             self.update_memory(question, response)
+        return response
+    
+    def stream(self, question):
+        return self.simple_chain.stream(question)
+    
+    """ render llm st response """
+    def st_render(self, question):
+        stream = self.stream(question)
+        response = st.write_stream(stream)
         return response

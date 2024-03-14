@@ -45,7 +45,10 @@ class ChatRenderer:
             # Display user message in chat message container
             with st.chat_message("user"):
                 st.markdown(question)
-            # Add user message to chat history
-            stream = self.session.chatbot.stream(question)
-            response = st.write_stream(stream)
-            self.session.add_to_conversation(question, response)
+            with st.chat_message("ai"):
+                full_response = self.session.chatbot.st_render(question)
+                self.session.add_to_conversation(question, full_response)
+                st.rerun()
+           
+    
+    

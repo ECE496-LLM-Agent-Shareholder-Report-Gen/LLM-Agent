@@ -5,14 +5,18 @@ from langchain.vectorstores.faiss import FAISS
 
 import datetime
 import json
-from chatbots import SimpleChatbot
+from chatbots import FusionChatbot, SimpleChatbot, StepbackChatbot
 
-from retriever_strategies import CompositeRetrieverStrategy, SimpleRetrieverStrategy
+from retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
 
 """ Session
 holds the state of the session, which represents
 a user-LLM interaction """
 class Session:
+
+    valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
+    valid_llm_chains = ["Simple Chain", "Fusion Chain", "Stepback Chain", "Simple Stepback Chain"]
+
     def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, reports=[], memory_enabled=False, k=None, k_i=None):
         self.reports = reports
         self.llm_chain = llm_chain
@@ -30,45 +34,92 @@ class Session:
         self.vectorstores = {}
         self.initialized = False
      
-
-    def initialize(self, index_generator, file_manager, llm, embeddings):
-        valid_retrieval_strategies = ["Simple Retrieval Strategy"]
-        valid_llm_chains = ["Simple Chain"]
-        if not self.retrieval_strategy or not self.retrieval_strategy in valid_retrieval_strategies:
-            raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", valid_retrieval_strategies) 
+    """ Initialize session for Q&A with LLM """
+    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None):
         
-        if not self.llm_chain or not self.llm_chain in valid_llm_chains:
-            raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", valid_llm_chains) 
+        if not self.retrieval_strategy or not self.retrieval_strategy in self.valid_retrieval_strategies:
+            raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies) 
+        
+        if not self.llm_chain or not self.llm_chain in self.valid_llm_chains:
+            raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", self.valid_llm_chains) 
 
         if len(self.reports) == 0:
             raise Exception("No reports added") 
 
         # get vector stores from files
         self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports)
-        print("vectorstores: ", self.vectorstores)
+
         if self.retrieval_strategy == "Simple Retrieval Strategy":
-            print("initializing simple retrieveer strategy")
-            flat_vs = self.gen_vectorstore_flat()
-            vectorstore = None
-            iter_1 = True
-            print("flat vs: ", flat_vs)
-            for vs in flat_vs:
-                if iter_1:
-                    iter_1 = False
-                    vectorstore = vs
-                else:
-                    index_generator.merge_vector_stores(vectorstore, vs)
-            simple_retriever = SimpleRetrieverStrategy(vectorstore) 
-            self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter"])
+            self.init_simple_retriever()
+        elif self.retrieval_strategy == "Reranker Retrieval Strategy":
+            self.init_reranker_retriever(cross_encoder)
+        elif self.retrieval_strategy == "Random Retrieval Strategy":
+            self.init_random_retriever()
         else:
-            print("No retriever strategy initialized")
+            raise Exception("No retriever strategy initialized")
 
         if self.llm_chain == "Simple Chain":
-            print("initializing simple chatbot")
-            self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm)
+            self.init_simple_chain(index_generator, llm)
+        elif self.llm_chain == "Fusion Chain":
+            self.init_fusion_chain(llm)
+        elif self.llm_chain == "Stepback Chain":
+            self.init_stepback_chain(llm)
+        elif self.llm_chain == "Simple Stepback Chain":
+            self.init_simple_stepback_chain(llm)
         else:
-            print("No Chatbot initialized")
+            raise Exception("No Chatbot initialized")
+
         self.initialized = True
+
+    """ Init simple retriever strategy """
+    def init_simple_retriever(self):
+        print("initializing simple retriever strategy")
+        simple_retriever = SimpleRetrieverStrategy(k=self.k) 
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter"])
+
+    """ Init reranker retriever strategy """
+    def init_reranker_retriever(self, cross_encoder=None):
+        print("initializing Reranker retriever strategy")
+        if cross_encoder == None:
+            raise Exception("Tried to initailize Reranker strategy without a cross encoder")
+        reranker_retriever = ReRankerRetrieverStrategy(cross_encoder=cross_encoder, k=self.k, init_k=self.k_i) 
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter"])
+
+    """ Init random retriever strategy """
+    def init_random_retriever(self):
+        print("initializing Reranker retriever strategy")
+        stochastic_retriever = StochasticRetrieverStrategy(k=self.k, fetch_k=self.k_i) 
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter"])
+
+    """ Init Simple chain """
+    def init_simple_chain(self, index_generator, llm):
+        print("initializing simple chatbot")
+        flat_vs = self.gen_vectorstore_flat()
+        vectorstore = None
+        iter_1 = True
+        # create one vector store
+        for vs in flat_vs:
+            if iter_1:
+                iter_1 = False
+                vectorstore = vs
+            else:
+                index_generator.merge_vector_stores(vectorstore, vs)
+        self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+
+    """ Init Fusion chain """
+    def init_fusion_chain(self, llm):
+        print("initializing fusion chatbot")
+        self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+
+    """ Init Stepback chain """
+    def init_stepback_chain(self, llm):
+        print("initializing stepback chatbot")
+        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+
+    """ Init Simple Stepback chain """
+    def init_simple_stepback_chain(self, llm):
+        print("initializing simple stepback chatbot")
+        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     def add_report(self, report):
         self.reports.append(report)
@@ -214,8 +265,8 @@ class QAE:
         self.question = question
         self.answer = answer
         self.expected = expected
-        self.similarity_score=None
-        self.response_time=None
+        self.similarity_score=similarity_score
+        self.response_time=response_time
 
     def encode(self):
         return vars(self)

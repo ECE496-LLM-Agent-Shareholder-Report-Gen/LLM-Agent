@@ -1,6 +1,5 @@
 import streamlit as st
-from GUI.session_renderer import SessionRenderer
-from GUI.benchmark_renderer import BenchmarkRenderer
+from GUI.embedding_renderer import EmbeddingRenderer
 from GUI.shared import load_global_singleton, navbar
 
 if not "global_singleton" in st.session_state:
@@ -10,9 +9,5 @@ else:
     global_singleton = st.session_state["global_singleton"]
 
 navbar(global_singleton)
-# Main Content
-
-session = BenchmarkRenderer(global_singleton)
-session.render()
-
-
+llm = EmbeddingRenderer(global_singleton)
+llm.render()

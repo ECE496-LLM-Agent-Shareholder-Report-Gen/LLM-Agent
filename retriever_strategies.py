@@ -8,6 +8,9 @@ class RetrieverStrategy(ABC):
     def retrieve_context(self, *args,  **kwargs):
         pass
 
+    def set_vectorstore(self, vectorstore):
+        self.vectorstore = vectorstore
+
     
 
 class CompositeRetrieverStrategy(RetrieverStrategy):
@@ -34,6 +37,10 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
         
         return context
 
+    def set_vectorstore(self, vectorstore):
+        for strategy in self.strategies:
+            strategy.set_vectorstore(vectorstore)
+
 
 class SimpleRetrieverStrategy(RetrieverStrategy):
 
@@ -43,28 +50,31 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         self.k = k
         self.fetch_k = fetch_k
 
-    def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, *args, **kwargs):
+    def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=None, *args, **kwargs):
         vs = self.vectorstore
         if vectorstore != None:
             vs = vectorstore
         if vs == None:
             raise Exception("Error: No vectorstore given!")
+        if k == None:
+            k = self.k
         if relevant_documents == None:
-            relevant_documents = vs.similarity_search(question, *args,**kwargs)
+            relevant_documents = vs.similarity_search(question, k=k, *args,**kwargs)
 
         return relevant_documents
 
     
 
 class ReRankerRetrieverStrategy(RetrieverStrategy):
-    def __init__(self,  cross_encoder,vectorstore=None, filters={}, init_k=100):
+    def __init__(self,  cross_encoder,vectorstore=None, filters={}, k=8, init_k=100):
         self.vectorstore = vectorstore
         self.cross_encoder = cross_encoder
         self.filters = filters
+        self.k = k
         self.init_k = init_k
 
 
-    def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=8, *args, **kwargs):
+    def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=None, *args, **kwargs):
         vs = self.vectorstore
         if vectorstore != None:
             vs = vectorstore
@@ -79,6 +89,10 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
             relevant_documents[x].metadata["ce_score"] = scores[x]
         
         relevant_documents.sort(key=lambda x: x.metadata["ce_score"], reverse=True)
+
+        # use this functions k arg
+        if k == None:
+            k = self.k
 
         if k > len(scores):
             k = len(scores)
@@ -127,7 +141,7 @@ class NextRetrieverStrategy(RetrieverStrategy):
 
 class StochasticRetrieverStrategy(RetrieverStrategy):
 
-    def __init__(self, vectorstore=None, filters={}, k=6, fetch_k=20):
+    def __init__(self, vectorstore=None, filters={}, k=8, fetch_k=20):
         self.vectorstore = vectorstore
         self.filters = filters
         self.k = k
@@ -144,23 +158,21 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
             raise Exception("Error: No vectorstore given!")
         
         # set k
-        k_real = self.k
-        if k!=None:
-            k_real = k
+        if k == None:
+            k = self.k
         
          # set fetch_k
-        fetch_k_real = self.fetch_k
-        if fetch_k!=None:
-            fetch_k_real = fetch_k
+        if fetch_k == None:
+            fetch_k = self.fetch_k
 
-        if k_real > fetch_k_real:
-            k_real = fetch_k_real # can't choose more than the list
+        if k > fetch_k:
+            k = fetch_k # can't choose more than the list
 
         # get question count and update it
 
         if relevant_documents == None:
-            relevant_documents = vs.similarity_search(question, k=fetch_k_real)
+            relevant_documents = vs.similarity_search(question, k=fetch_k)
 
-        relevant_documents = random.sample(relevant_documents, k_real)
+        relevant_documents = random.sample(relevant_documents, k)
         return relevant_documents
     

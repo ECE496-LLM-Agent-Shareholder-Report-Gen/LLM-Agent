@@ -3,9 +3,11 @@ import os
 from global_singleton import GlobalSingleton
 from model_loader import LLMModelLoader, EmbeddingsLoader
 from transformers import AutoModel, AutoModelForCausalLM
-from langchain_openai import OpenAI
+from langchain_openai import OpenAI, OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings, HuggingFaceEmbeddings
+from sentence_transformers.cross_encoder import CrossEncoder
 
-#@st.cache_resource
+
 def load_llm(_global_singleton):
     if _global_singleton.llm_type=="LLAMA":
         return load_llm_llama(_global_singleton.llm_path)
@@ -37,7 +39,6 @@ def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
         model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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")
         #model = AutoModel.from_pretrained(huggingface_model_name, token = "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")#, api_key=huggingface_api_key)
-        print(model)
         return model
 
 @st.cache_resource
@@ -46,20 +47,70 @@ def load_llm_openai(openai_api_key):
     model = OpenAI(openai_api_key = "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")
     print(model)
     return model
-            
+
+############ word embedders:      
+"""
 @st.cache_resource
 def load_word_embedder():
     print("loading embeddings")
     with st.spinner(text="Loading and Embeddings model – hang tight! This should take 1-2 minutes."):
         embeddings_loader = EmbeddingsLoader()
         return embeddings_loader.load_bge()
+"""
 
+#todo: 1- initiate global_singleton.openai embedding name
+def load_word_embedding(_global_singleton):
+    if _global_singleton.embedding_type=="OpenAI":
+        return load_word_embedder_openai(_global_singleton.opai_api_key)
+    elif _global_singleton.embedding_type=="Huggingface":
+        return load_word_embedder_huggingface(_global_singleton.hug_embedding_name)
+    else:
+        return load_word_embedder_default()
 
-#@st.cache_data
+#todo: openai embeddings (get input from st.selectbox and this select box has options as "text-embedding-ada-002","text-embedding-3-large","text-embedding-3-small") or just ada embedding model
+@st.cache_resource
+def load_word_embedder_openai(openai_api_key):
+    print("loading openai embeddings")
+    with st.spinner(text="Loading and OpenAI Embeddings model – hang tight! This should take 1-2 minutes."):
+        #todo: change api key with the users entry
+        embeddings = OpenAIEmbeddings(openai_api_key="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")
+        return embeddings
+
+#todo: huggingface embeddings (locally downloaded, user chooses folder/file) or just show select options as what is in that path yada heryerden istedigin bi path secbilcegin file uploader
+@st.cache_resource
+def load_word_embedder_huggingface(model_name):
+    print("loading huggingface embeddings")
+    with st.spinner(text="Loading and HuggingFace Embeddings model – hang tight! This should take 1-2 minutes."):
+        model_kwargs = {'device': 'cuda'}
+        encode_kwargs = {'normalize_embeddings': True}
+        hf = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs=model_kwargs,
+            encode_kwargs=encode_kwargs
+        )
+        return hf
+
+@st.cache_resource
+def load_word_embedder_default():
+    print("loading default bge embeddings")
+    with st.spinner(text="Loading and Embeddings model – hang tight! This should take 1-2 minutes."):
+        embeddings_loader = EmbeddingsLoader()
+        return embeddings_loader.load_bge()
+
+##### cross encoder
+#not being called anywhere rn
+@st.cache_resource
+def load_cross_encoder():
+    print("loading cross encoder")
+    with st.spinner(text="Loading and Cross Encoder model – hang tight! This should take 1-2 minutes."):
+        ce_file_path = "/groups/acmogrp/Large-Language-Model-Agent/language_models/cross_encoder/BAAI_bge-reranker-large"
+        return CrossEncoder(model_name=ce_file_path)
+
 def load_global_singleton():
     global_singleton = GlobalSingleton(content_path="./content/companies",chat_session_path="./saved_session.json", benchmark_session_path="./benchmark_session.json")
     global_singleton.llm = load_llm(global_singleton)
-    global_singleton.embeddings = load_word_embedder()
+    #global_singleton.embeddings = load_word_embedder()
+    global_singleton.embeddings = load_word_embedding(global_singleton)
     global_singleton.load_file_manager()
     global_singleton.load_chat_session_manager()
     global_singleton.load_benchmark_session_manager()
@@ -104,12 +155,21 @@ def navbar(global_singleton):
         if new_benchmark:
             st.switch_page("pages/benchmark_page.py")
 
-
-            
-
         # choose llm
         st.divider()
         select_llm = False
         select_llm = st.button("Choose/Change LLM", use_container_width=True)
         if select_llm:
             st.switch_page("pages/model_config_page.py")
+        st.write("Current LLM: ", global_singleton.llm)
+        st.write("Current LLM Type: ", global_singleton.llm_type)
+        #choose embedder
+        st.divider()
+        select_embedder = False
+        select_embedder = st.button("Choose/Change Embedder", use_container_width=True)
+        if select_embedder:
+            st.switch_page("pages/embedding_config_page.py")
+        st.write("Current Embedder: ", global_singleton.embeddings)
+        st.write("Current Embedder Type: ", global_singleton.embedding_type)
+        #st.write("Current Huggingface Embedder Name: ", global_singleton.hug_embedding_name)
+
