@@ -373,11 +373,12 @@ This includes loading up previous sessions,
 saving them, and maintaining them """
 class SessionManager:
 
-    def __init__(self, save_file='./saved_session.json'):
+    def __init__(self, save_file=None, _session_cls=None):
         self.sessions = None
         self.initialized = False
         self.active_session = None
         self.save_file = save_file
+        self._session_cls = _session_cls
     
     def load(self):
         ss_list = {}
@@ -387,7 +388,7 @@ class SessionManager:
             with open(self.save_file, "r") as json_file:
                 ss_list = json.load(json_file) 
             for name, ss in ss_list.items():
-                session = Session.from_dict(ss)
+                session = self._session_cls.from_dict(ss)
                 self.sessions[name] = session
         except Exception as e:
             print(e)

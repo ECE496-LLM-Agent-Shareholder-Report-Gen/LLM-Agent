@@ -130,6 +130,9 @@ class LLMRenderer:
     #global_singleton = load_global_singleton()
     #st.session_state["global_singleton"] = global_singleton
 
+#callbacks=<langchain_core.callbacks.manager.CallbackManager object at 0x7f42e8136d90>
+
+
 
                 #print("giris sonrasi",st.session_state["global_singleton"].llm)
                 #st.session_state["global_singleton"] = self.global_singleton

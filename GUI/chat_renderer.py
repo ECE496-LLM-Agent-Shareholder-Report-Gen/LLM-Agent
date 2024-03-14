@@ -11,8 +11,8 @@ class ChatRenderer:
 
     def __init__(self, global_singleton):
         self.global_singleton = global_singleton
-        if global_singleton.session_manager.active_session:
-            self.session = global_singleton.session_manager.active_session 
+        if global_singleton.chat_session_manager and global_singleton.chat_session_manager.active_session:
+            self.session = global_singleton.chat_session_manager.active_session 
             print("Chatting with active session: ", self.session)
             if not self.session.initialized:
                 print("initialized session!")
@@ -25,11 +25,9 @@ class ChatRenderer:
     def render(self):
         self.render_header()
         self.render_conversation()
-        pass
 
     def render_header(self):
         st.title("Chat with the LLM")
-        pass
 
     def render_conversation(self):
         # Initialize chat history

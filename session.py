@@ -13,8 +13,7 @@ from retriever_strategies import CompositeRetrieverStrategy, SimpleRetrieverStra
 holds the state of the session, which represents
 a user-LLM interaction """
 class Session:
-    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, conversation_history=[], reports=[], memory_enabled=False, k=None, k_i=None):
-        self.conversation_history = conversation_history
+    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, reports=[], memory_enabled=False, k=None, k_i=None):
         self.reports = reports
         self.llm_chain = llm_chain
         self.retrieval_strategy = retrieval_strategy
@@ -71,13 +70,6 @@ class Session:
             print("No Chatbot initialized")
         self.initialized = True
 
-
-    def add_to_conversation(self, question, answer):
-        qa = QA(question, answer)
-        if not isinstance(self.conversation_history, list): 
-            self.conversation_history = []
-        self.conversation_history.append(qa)
-
     def add_report(self, report):
         self.reports.append(report)
 
@@ -88,10 +80,6 @@ class Session:
         for report_dict in report_dict_list:
             report = Report(**report_dict)
             self.add_report(report)
-
-    def add_conversation_history(self, conversation_history_dict_list):
-        for conversation_history_dict in conversation_history_dict_list:
-            self.add_report(**conversation_history_dict)
 
     def generate_vectorstore(self, index_generator, embeddings, report):
         vectorstore = index_generator.generate_vector_store_pdf_file(embeddings, report.file_path, report.company, report.year, report.report_type, report.quarter)
@@ -149,6 +137,26 @@ class Session:
         del ses_dict["chatbot"]
         return ses_dict
 
+
+""" Chat Session
+holds the state of a chat session, which represents
+a user-LLM interaction. It inherits from session, and uses
+conversation history """
+class ChatSession(Session):
+    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, conversation_history=[], reports=[], memory_enabled=False, k=None, k_i=None):
+        super().__init__(name=name, llm_chain=llm_chain, retrieval_strategy=retrieval_strategy, reports=reports, memory_enabled=memory_enabled, k=k, k_i=k_i)
+        self.conversation_history = conversation_history
+
+    def add_to_conversation(self, question, answer):
+        qa = QA(question, answer)
+        if not isinstance(self.conversation_history, list): 
+            self.conversation_history = []
+        self.conversation_history.append(qa)
+
+    def add_conversation_history(self, conversation_history_dict_list):
+        for conversation_history_dict in conversation_history_dict_list:
+            self.add_report(**conversation_history_dict)
+
     @classmethod
     def from_dict(cls, cls_dict):
         ses = cls(**cls_dict)
@@ -159,12 +167,55 @@ class Session:
         return ses
 
 
+""" Benchmark Session
+Holds the state of a benchmark session, which represents
+an LLM evaluation interaction. it inherits from Session, but instead
+of using conversation history it uses Question-Answer-Expected list """
+class BenchmarkSession(Session):
+    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, question_answer_expected={}, reports=[], memory_enabled=False, k=None, k_i=None):
+        super().__init__(name=name, llm_chain=llm_chain, retrieval_strategy=retrieval_strategy, reports=reports, memory_enabled=memory_enabled, k=k, k_i=k_i)
+        self.question_answer_expected = question_answer_expected
+
+    def update_qae(self, id, question, answer, expected=None, similarity_score=None, response_time=None):
+        qae = QAE(question, answer, expected=expected, similarity_score=similarity_score, response_time=response_time)
+        self.question_answer_expected[id] = qae
+
+    def set_qae(self, question_answer_expected={}):
+        self.question_answer_expected = question_answer_expected
+
+    @classmethod
+    def from_dict(cls, cls_dict):
+        ses = cls(**cls_dict)
+        ses.reports = []
+        ses.question_answer_expected = {}
+        ses.add_reports_dict(cls_dict['reports'])
+        ses.set_qae(cls_dict['question_answer_expected'])
+        return ses
+
+
+        
+
+
+
 """ QA
 class that represents a question and an answer """
 class QA:
     def __init__(self, question, answer):
         self.question = question
         self.answer = answer
+
+    def encode(self):
+        return vars(self)
+    
+""" QAE
+class that represents a question, an answer, and an expeected answer """
+class QAE:
+    def __init__(self, question, answer=None, expected=None, similarity_score=None, response_time=None):
+        self.question = question
+        self.answer = answer
+        self.expected = expected
+        self.similarity_score=None
+        self.response_time=None
 
     def encode(self):
         return vars(self)

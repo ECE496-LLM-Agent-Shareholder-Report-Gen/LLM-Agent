@@ -13,16 +13,15 @@ populating Sessions."""
 class BenchmarkRenderer:
 
     def __init__(self, global_singleton):
-        self.session = Session()
         self.global_singleton = global_singleton
-        if 'question_answers' not in st.session_state:
-            st.session_state['question_answers'] = [["", ""]]
+        if 'question_expected' not in st.session_state:
+            st.session_state['question_expected'] = [["", ""]]
         
         
     def render(self):
         self.render_header()
         self.render_import()
-        self.render_question_answers()
+        self.render_question_expected()
         st.divider()
         self.render_submit()
 
@@ -62,11 +61,11 @@ class BenchmarkRenderer:
                     
                     # add imported array to the list of QAs
                     last_entry = None
-                    if len(st.session_state.question_answers) > 0:
-                        last_entry = st.session_state.question_answers[-1]
+                    if len(st.session_state.question_expected) > 0:
+                        last_entry = st.session_state.question_expected[-1]
                         if last_entry[0].strip() == "" and last_entry[1].strip() == "":
-                            st.session_state.question_answers.pop()
-                    st.session_state.question_answers = st.session_state.question_answers + merged_array
+                            st.session_state.question_expected.pop()
+                    st.session_state.question_expected = st.session_state.question_expected + merged_array
                 elif filename.endswith("json"):
                     json_data = json.load(uploaded_file)
                     # validate json data
@@ -80,20 +79,20 @@ class BenchmarkRenderer:
 
                     # add imported array to the list of QAs
                     last_entry = None
-                    if len(st.session_state.question_answers) > 0:
-                        last_entry = st.session_state.question_answers[-1]
+                    if len(st.session_state.question_expected) > 0:
+                        last_entry = st.session_state.question_expected[-1]
                         if last_entry[0].strip() == "" and last_entry[1].strip() == "":
-                            st.session_state.question_answers.pop()
-                    st.session_state.question_answers = st.session_state.question_answers + flat_array
+                            st.session_state.question_expected.pop()
+                    st.session_state.question_expected = st.session_state.question_expected + flat_array
 
             elif submitted:
                 st.warning("No file uploaded.")
 
     """ renders the questions and answers """
-    def render_question_answers(self):
+    def render_question_expected(self):
         st.subheader('Questions and Answers', divider='grey')
 
-        for idx, qa in enumerate(st.session_state.question_answers):
+        for idx, qa in enumerate(st.session_state.question_expected):
 
             with st.container(border=True):
                 col1, col2 = st.columns([0.92,0.08])
@@ -102,13 +101,13 @@ class BenchmarkRenderer:
                 with col2:
                     remove_qa = st.button(":x:", key=f"close_{idx+1}")
                     if remove_qa:
-                         st.session_state.question_answers.remove(qa)
+                         st.session_state.question_expected.remove(qa)
                          st.rerun()
-                st.session_state.question_answers[idx][0] = st.text_area(f"Question", value= qa[0], key=f"question_{idx+1}")
-                st.session_state.question_answers[idx][1] = st.text_area(f"Answer", value= qa[1], key=f"answer_{idx+1}")
+                st.session_state.question_expected[idx][0] = st.text_area(f"Question", value= qa[0], key=f"question_{idx+1}")
+                st.session_state.question_expected[idx][1] = st.text_area(f"Answer", value= qa[1], key=f"answer_{idx+1}")
         new_qa = st.button("Add Question")
         if new_qa:
-            st.session_state.question_answers.append(["", ""])
+            st.session_state.question_expected.append(["", ""])
             st.rerun()
 
     def render_submit(self):
@@ -125,7 +124,7 @@ class BenchmarkRenderer:
             ):
                 form_submitted = st.button("Submit", use_container_width=True)
                 if form_submitted:
-                    pass
+                    st.switch_page("pages/benchmark_session_page.py")
         with col2:
             with stylable_container(
                 key="clear_button",
@@ -139,6 +138,6 @@ class BenchmarkRenderer:
             ):
                 clear = st.button("Clear", use_container_width=True)
                 if clear:
-                    st.session_state.question_answers = [["", ""]]
+                    st.session_state.question_expected = [["", ""]]
                     st.rerun()
     

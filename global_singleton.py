@@ -1,6 +1,8 @@
+from session import BenchmarkSession, ChatSession
 from util import FileManager, SessionManager
 from pre_processing import IndexGenerator
-
+import streamlit as st
+"""
 class GlobalSingleton:
 
     def __init__(self, content_path='./content/companies', session_path='./saved_sessions.json'):
@@ -23,3 +25,68 @@ class GlobalSingleton:
     
     def load_session_manager(self):
         self.session_manager.load()
+"""
+
+class GlobalSingleton:
+    _instance = None
+    llm = None
+    embeddings = None
+    cross_encoder = None
+    embeddings = None
+    cross_encoder = None
+    file_manager = None
+    index_generator = None
+    chat_session_manager = None
+    benchmark_session_manager = None
+    content_path = None
+    chat_session_path = None
+    benchmark_session_path = None
+    llm_path = None
+    llm_type = None
+    hug_llm_name = None
+    hug_api_key = None
+    opai_api_key = None
+
+    def __new__(cls, content_path='./content/companies', chat_session_path='./saved_sessions.json', benchmark_session_path='./benchmark_session.json'):
+        if cls._instance is None:
+            print('Creating the object')
+            cls._instance = super(GlobalSingleton, cls).__new__(cls)
+            cls._instance.llm = None
+            cls._instance.embeddings = None
+            cls._instance.cross_encoder = None
+            cls._instance.file_manager = None
+            cls._instance.index_generator = None
+            cls._instance.chat_session_manager = None
+            cls._instance.benchmark_session_manager = None
+            cls._instance.content_path = content_path
+            cls._instance.chat_session_path = chat_session_path
+            cls._instance.benchmark_session_path = benchmark_session_path
+            cls._instance.llm_path = None
+            cls._instance.llm_type = None
+            cls._instance.hug_llm_name = None
+            cls._instance.hug_api_key = None
+            cls._instance.opai_api_key = None
+        print(cls._instance, cls._instance.llm)
+        return cls._instance
+        
+    def load_index_generator(self):
+        self.index_generator = IndexGenerator()
+    
+    def load_file_manager(self):
+        self.file_manager = FileManager(self.content_path)
+        self.file_manager.load()
+    
+    def load_chat_session_manager(self):
+        self.chat_session_manager = SessionManager(self.chat_session_path, _session_cls=ChatSession)
+        self.chat_session_manager.load()
+    
+    def load_benchmark_session_manager(self):
+        self.benchmark_session_manager = SessionManager(self.benchmark_session_path, _session_cls=BenchmarkSession)
+        self.benchmark_session_manager.load()
+"""
+    @staticmethod
+    def get_instance():
+        if not hasattr(GlobalSingleton, "_instance"):
+            GlobalSingleton._instance = GlobalSingleton()
+        return GlobalSingleton._instance
+"""

@@ -1,21 +1,15 @@
 import streamlit as st
-from GUI.session_renderer import SessionRenderer
-from GUI.benchmark_renderer import BenchmarkRenderer
+from GUI.benchmark_eval_renderer import BenchmarkEvalRenderer
 from GUI.shared import load_global_singleton, navbar
 
 if not "global_singleton" in st.session_state:
     global_singleton = load_global_singleton()
-    print("yarrrrrrrrrrrrrrrakkkk")
-
     st.session_state["global_singleton"] = global_singleton
 else: 
     global_singleton = st.session_state["global_singleton"]
-print("baaaaaaaaaaaaassss")
 
+print("global:", global_singleton.__dict__)
 navbar(global_singleton)
-# Main Content
 
-session = BenchmarkRenderer(global_singleton)
+session = BenchmarkEvalRenderer(global_singleton)
 session.render()
-
-

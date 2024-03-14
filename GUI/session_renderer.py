@@ -1,6 +1,6 @@
 from random import randint
 import streamlit as st
-from session import Report, Session
+from session import QAE, BenchmarkSession, ChatSession, Report, Session
 
 import os
 
@@ -9,9 +9,9 @@ This class creates the session itself, and is responsible for
 populating Sessions."""
 class SessionRenderer:
 
-    def __init__(self, global_singleton):
-        self.session = Session()
+    def __init__(self, global_singleton, isBenchmark=False):
         self.global_singleton = global_singleton
+        self.isBenchmark = isBenchmark
         if 'reports' not in st.session_state:
             st.session_state['reports'] = []
         if 'name' not in st.session_state:
@@ -30,7 +30,10 @@ class SessionRenderer:
             st.session_state["widget_key"] = str(randint(1000, 100000000))
         
     def render(self):
-        self.render_header()
+        if self.isBenchmark:
+            self.render_header_benchmark()
+        else:
+            self.render_header()
         st.divider()
         self.render_report_loader()
         st.divider()
@@ -38,7 +41,15 @@ class SessionRenderer:
         st.divider()
         self.render_llm_chain_selector()
         st.divider()
-        self.render_create()
+        if self.isBenchmark:
+            self.render_create_benchmark()
+        else:
+            self.render_create()
+
+
+    def render_header_benchmark(self):
+        st.title('Complete Benchmark Creation')
+        st.markdown('<b>Select the reports, retrieval strategy, and LLM chain</b>', unsafe_allow_html=True)
 
     def render_header(self):
         st.title('Chat with Shareholder Reports')
@@ -331,8 +342,22 @@ class SessionRenderer:
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
-            session = Session(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
-            self.global_singleton.session_manager.add_session(session)
-            self.global_singleton.session_manager.set_active_session(session)
+            session = ChatSession(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
+            self.global_singleton.chat_session_manager.add_session(session)
+            self.global_singleton.chat_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton
             st.switch_page("pages/chat_page.py")
+    
+    def render_create_benchmark(self):
+        st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
+        create_session = st.button("Create Session", use_container_width=True)
+        if create_session:
+            # turn st.session_state.question_expected to a dict
+            qae_dict = {}
+            for idx, qe in enumerate(st.session_state.question_expected):
+                qae_dict[idx+1] = QAE(question=qe[0], expected=qe[1])
+            session = BenchmarkSession(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, question_answer_expected=qae_dict, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
+            self.global_singleton.benchmark_session_manager.add_session(session)
+            self.global_singleton.benchmark_session_manager.set_active_session(session)
+            st.session_state["global_singleton"] = self.global_singleton
+            st.switch_page("pages/benchmark_eval_page.py")
