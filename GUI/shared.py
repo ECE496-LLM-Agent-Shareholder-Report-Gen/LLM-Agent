@@ -35,9 +35,9 @@ def load_llm_llama(llm_path):
 @st.cache_resource
 #not checking wheter huggingface_model_name and huggingface_api_key are valid or not
 def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
-    print("huggingface load llm in icine girdi")
+    print("loading huggingface llm: ", huggingface_model_name)
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
-        model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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")
+        model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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", cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
         #model = AutoModel.from_pretrained(huggingface_model_name, token = "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")#, api_key=huggingface_api_key)
         return model
 
@@ -45,7 +45,6 @@ def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
 def load_llm_openai(openai_api_key):
     print("open ai llm loadun icine girdi")
     model = OpenAI(openai_api_key = "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")
-    print(model)
     return model
 
 ############ word embedders:      

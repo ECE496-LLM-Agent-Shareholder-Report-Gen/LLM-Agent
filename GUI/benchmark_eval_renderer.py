@@ -1,5 +1,7 @@
 import streamlit as st
 
+from GUI.misc import render_session_info
+
 class BenchmarkEvalRenderer:
 
     def __init__(self, global_singleton):
@@ -19,7 +21,8 @@ class BenchmarkEvalRenderer:
         self.render_question_expected()
 
     def render_header(self):
-        st.title("Benchmark your LLM")
+        st.title(self.session.name)
+        render_session_info(self.session)
 
     """ Render a single QAE box, without the title """
     def render_qae_box(self, question=None, expected=None, answer=None, similarity_score=None, response_time=None, cutoff=70, col1_width=0.2, col2_witdh=0.8):

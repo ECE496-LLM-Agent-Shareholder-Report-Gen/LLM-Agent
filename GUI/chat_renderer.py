@@ -1,5 +1,6 @@
 from random import randint
 import streamlit as st
+from GUI.misc import render_session_info
 from session import Report, Session
 
 import os
@@ -27,15 +28,22 @@ class ChatRenderer:
         self.render_conversation()
 
     def render_header(self):
-        st.title("Chat with the LLM")
+        st.title(self.session.name)
+        render_session_info(self.session)
+
 
     def render_conversation(self):
         # Initialize chat history
 
+        replay = None
+        replay_q = None
         # Display chat messages from history on app rerun
-        for qa in self.session.conversation_history:
+        for idx, qa in enumerate(self.session.conversation_history):
             with st.chat_message("user"):
                 st.markdown(qa.question)
+                replay = st.button("↺", key=f"replay_{idx}")
+                if replay:
+                    replay_q = qa
             with st.chat_message("ai"):
                 st.markdown(qa.answer)
 
@@ -46,8 +54,22 @@ class ChatRenderer:
             with st.chat_message("user"):
                 st.markdown(question)
             with st.chat_message("ai"):
+                #full_response = self.session.chatbot.invoke(question)
                 full_response = self.session.chatbot.st_render(question)
                 self.session.add_to_conversation(question, full_response)
+                st.rerun()
+        if replay and replay_q:
+             # Display user message in chat message container
+            with st.chat_message("user"):
+                st.markdown(replay_q.question)
+            with st.chat_message("ai"):
+                replays = replay_q.replays
+                if replays == None:
+                    replays = 0
+                full_response = self.session.chatbot.invoke(question)
+                #full_response = self.session.chatbot.st_render(replay_q.question, replays)
+                full_response = full_response
+                self.session.add_to_conversation(replay_q.question, full_response, replays)
                 st.rerun()
            
     

@@ -11,6 +11,9 @@ class RetrieverStrategy(ABC):
     def set_vectorstore(self, vectorstore):
         self.vectorstore = vectorstore
 
+    def set_skip(self, skip):
+        self.skip = skip
+
     
 
 class CompositeRetrieverStrategy(RetrieverStrategy):
@@ -34,12 +37,15 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
         for doc in documents:
             show_metadata = ", ".join([f"{metadata_key} {doc.metadata[metadata_key]}" for metadata_key in self.metadata if metadata_key in doc.metadata])
             context += f"Excerpt from {show_metadata}:\n{doc.page_content}\n\n"
-        
         return context
 
     def set_vectorstore(self, vectorstore):
         for strategy in self.strategies:
             strategy.set_vectorstore(vectorstore)
+
+    def set_skip(self, skip):
+        for strategy in self.strategies:
+            strategy.set_skip(skip)
 
 
 class SimpleRetrieverStrategy(RetrieverStrategy):
@@ -49,6 +55,7 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         self.filters = filters
         self.k = k
         self.fetch_k = fetch_k
+        self.skip = 0
 
     def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=None, *args, **kwargs):
         vs = self.vectorstore
@@ -59,9 +66,10 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         if k == None:
             k = self.k
         if relevant_documents == None:
-            relevant_documents = vs.similarity_search(question, k=k, *args,**kwargs)
+            relevant_documents = vs.similarity_search(question, k=k+self.skip*k, *args,**kwargs)
 
-        return relevant_documents
+        print("SIMPLE: SKIPPING ", self.skip*k)
+        return relevant_documents[self.skip*k:]
 
     
 
@@ -72,17 +80,22 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
         self.filters = filters
         self.k = k
         self.init_k = init_k
+        self.skip = 0
 
 
     def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=None, *args, **kwargs):
         vs = self.vectorstore
         if vectorstore != None:
             vs = vectorstore
+        if k == None:
+            k = self.k
         if vs == None:
             raise Exception("Error: No vectorstore given!")
         if relevant_documents == None:
             # get relevant documents
-            relevant_documents = vs.similarity_search(question,  k=self.init_k, *args, **kwargs)
+            relevant_documents = vs.similarity_search(question,  k=self.init_k+self.skip*k, *args, **kwargs)
+            relevant_documents = relevant_documents[self.skip*k:]
+            print("RERANKER: SKIPPING ", self.skip*k)
         scores = self.cross_encoder.predict([[question, document.page_content] for document in relevant_documents])
 
         for x in range(len(scores)):
@@ -91,8 +104,7 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
         relevant_documents.sort(key=lambda x: x.metadata["ce_score"], reverse=True)
 
         # use this functions k arg
-        if k == None:
-            k = self.k
+       
 
         if k > len(scores):
             k = len(scores)
@@ -116,7 +128,6 @@ class NextRetrieverStrategy(RetrieverStrategy):
         vs = self.vectorstore
         if vectorstore != None:
             vs = vectorstore
-            print("STRATEGY: Using self inserted vectorstore!")
         if vs == None:
             raise Exception("Error: No vectorstore given!")
         
@@ -146,7 +157,7 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
         self.filters = filters
         self.k = k
         self.fetch_k = fetch_k
-        self.QCTable = {}
+        self.skip = 0
 
     def retrieve_context(self, question,  relevant_documents=None,  vectorstore=None, k=None, fetch_k=None, *args, **kwargs):
         # set vectorstore
@@ -171,7 +182,9 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
         # get question count and update it
 
         if relevant_documents == None:
-            relevant_documents = vs.similarity_search(question, k=fetch_k)
+            relevant_documents = vs.similarity_search(question, k=fetch_k+self.skip*k)
+            relevant_documents = relevant_documents[self.skip*k:]
+            print("stochastic: SKIPPING ", self.skip*k)
 
         relevant_documents = random.sample(relevant_documents, k)
         return relevant_documents

@@ -17,7 +17,16 @@ class Session:
     valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
     valid_llm_chains = ["Simple Chain", "Fusion Chain", "Stepback Chain", "Simple Stepback Chain"]
 
-    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, reports=[], memory_enabled=False, k=None, k_i=None):
+    def __init__(self, 
+                 name=None, 
+                 embeddings_model_name=None, 
+                 llm_chain=None, 
+                 retrieval_strategy=None, 
+                 reports=[], 
+                 memory_enabled=False, 
+                 k=None, 
+                 k_i=None,
+                 *args, **kwargs):
         self.reports = reports
         self.llm_chain = llm_chain
         self.retrieval_strategy = retrieval_strategy
@@ -27,7 +36,7 @@ class Session:
             self.name = formatted_time
         else:
             self.name = name
-        self.memory_enabled = False
+        self.embeddings_model_name = embeddings_model_name
         self.k = k
         self.k_i = k_i
         self.memory_enabled = memory_enabled
@@ -179,13 +188,24 @@ class Session:
 
     def encode(self):
         return vars(self)
+    
+    @classmethod
+    def from_dict(cls, cls_dict):
+        ses = cls(**cls_dict)
+        ses.reports = []
+        ses.add_reports_dict(cls_dict['reports'])
+        return ses
 
-    def to_dict(self, indent=None):
-        json_str = json.dumps(self, default=lambda o: o.encode(), indent=indent)
-        ses_dict = json.load(json_str)
-        del ses_dict["vectorstores"]
-        del ses_dict["retriever_strategy_obj"]
-        del ses_dict["chatbot"]
+    def to_dict(self):
+        ses_dict = {}
+        ses_dict["llm_chain"] = self.llm_chain
+        ses_dict["retrieval_strategy"] = self.retrieval_strategy
+        ses_dict["memory_enabled"] = self.memory_enabled
+        ses_dict["embeddings_model_name"] = self.embeddings_model_name
+        ses_dict["name"] = self.name
+        ses_dict["k"] = self.k
+        ses_dict["k_i"] = self.k_i
+        ses_dict["reports"] = [report.encode() for report in self.reports]
         return ses_dict
 
 
@@ -194,28 +214,52 @@ holds the state of a chat session, which represents
 a user-LLM interaction. It inherits from session, and uses
 conversation history """
 class ChatSession(Session):
-    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, conversation_history=[], reports=[], memory_enabled=False, k=None, k_i=None):
-        super().__init__(name=name, llm_chain=llm_chain, retrieval_strategy=retrieval_strategy, reports=reports, memory_enabled=memory_enabled, k=k, k_i=k_i)
+    def __init__(self, 
+                 name=None, 
+                 embeddings_model_name=None, 
+                 llm_chain=None, 
+                 retrieval_strategy=None, 
+                 conversation_history=[], 
+                 reports=[], 
+                 memory_enabled=False, 
+                 k=None, 
+                 k_i=None, 
+                 *args, 
+                 **kwargs):
+        super().__init__(name=name, 
+                         llm_chain=llm_chain, 
+                         embeddings_model_name=embeddings_model_name,
+                         retrieval_strategy=retrieval_strategy, 
+                         reports=reports, 
+                         memory_enabled=memory_enabled, 
+                         k=k, 
+                         k_i=k_i, 
+                         *args, 
+                         **kwargs)
         self.conversation_history = conversation_history
 
-    def add_to_conversation(self, question, answer):
-        qa = QA(question, answer)
+    def add_to_conversation(self, question=None, answer=None, replays=0):
+        qa = QA(question, answer, replays=replays)
         if not isinstance(self.conversation_history, list): 
             self.conversation_history = []
         self.conversation_history.append(qa)
 
     def add_conversation_history(self, conversation_history_dict_list):
         for conversation_history_dict in conversation_history_dict_list:
-            self.add_report(**conversation_history_dict)
+            self.add_to_conversation(**conversation_history_dict)
 
     @classmethod
     def from_dict(cls, cls_dict):
-        ses = cls(**cls_dict)
-        ses.reports = []
+        ses = super().from_dict(cls_dict)
         ses.conversation_history = []
-        ses.add_reports_dict(cls_dict['reports'])
         ses.add_conversation_history(cls_dict['conversation_history'])
         return ses
+    
+    def to_dict(self):
+        ses_dict = super().to_dict()
+        ses_dict["conversation_history"] = [qa.encode() for qa in self.conversation_history]
+        return ses_dict
+
 
 
 """ Benchmark Session
@@ -223,8 +267,28 @@ Holds the state of a benchmark session, which represents
 an LLM evaluation interaction. it inherits from Session, but instead
 of using conversation history it uses Question-Answer-Expected list """
 class BenchmarkSession(Session):
-    def __init__(self, name=None, llm_chain=None, retrieval_strategy=None, question_answer_expected={}, reports=[], memory_enabled=False, k=None, k_i=None):
-        super().__init__(name=name, llm_chain=llm_chain, retrieval_strategy=retrieval_strategy, reports=reports, memory_enabled=memory_enabled, k=k, k_i=k_i)
+    def __init__(self, 
+                 name=None, 
+                 embeddings_model_name=None,
+                 llm_chain=None, 
+                 retrieval_strategy=None, 
+                 question_answer_expected={}, 
+                 reports=[], 
+                 memory_enabled=False, 
+                 k=None, 
+                 k_i=None,
+                 *args, 
+                 **kwargs):
+        super().__init__(name=name, 
+                         embeddings_model_name=embeddings_model_name,
+                         llm_chain=llm_chain, 
+                         retrieval_strategy=retrieval_strategy, 
+                         reports=reports, 
+                         memory_enabled=memory_enabled,
+                         k=k, 
+                         k_i=k_i,
+                         *args, 
+                         **kwargs)
         self.question_answer_expected = question_answer_expected
 
     def update_qae(self, id, question, answer, expected=None, similarity_score=None, response_time=None):
@@ -234,14 +298,24 @@ class BenchmarkSession(Session):
     def set_qae(self, question_answer_expected={}):
         self.question_answer_expected = question_answer_expected
 
+    def set_qae_from_dict(self, qae_dict):
+        for id, qae in qae_dict.items():
+            self.update(id, **qae)
+
     @classmethod
     def from_dict(cls, cls_dict):
-        ses = cls(**cls_dict)
-        ses.reports = []
+        ses = super().from_dict(cls_dict)
         ses.question_answer_expected = {}
-        ses.add_reports_dict(cls_dict['reports'])
-        ses.set_qae(cls_dict['question_answer_expected'])
+        ses.set_qae_from_dict(cls_dict['question_answer_expected'])
         return ses
+    
+    def to_dict(self):
+        ses_dict = super().to_dict()
+        temp_qae_dict = {}
+        for id, qae in self.question_answer_expected.items():
+            temp_qae_dict[id] = qae.encode()
+        ses_dict["question_answer_expected"] = temp_qae_dict
+        return ses_dict
 
 
         
@@ -251,9 +325,10 @@ class BenchmarkSession(Session):
 """ QA
 class that represents a question and an answer """
 class QA:
-    def __init__(self, question, answer):
+    def __init__(self, question, answer, replays=0):
         self.question = question
         self.answer = answer
+        self.replays = replays
 
     def encode(self):
         return vars(self)

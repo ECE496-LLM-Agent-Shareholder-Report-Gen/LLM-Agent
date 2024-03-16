@@ -342,7 +342,14 @@ class SessionRenderer:
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
-            session = ChatSession(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
+            session = ChatSession(name=st.session_state.name, 
+                                    # embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                    llm_chain=st.session_state.llm_chain, 
+                                    retrieval_strategy=st.session_state.retrieval_strategy, 
+                                    reports=st.session_state.reports, 
+                                    memory_enabled=st.session_state.memory_enabled,
+                                    k=st.session_state.k, 
+                                    k_i=st.session_state.k_i)
             self.global_singleton.chat_session_manager.add_session(session)
             self.global_singleton.chat_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton
@@ -356,7 +363,14 @@ class SessionRenderer:
             qae_dict = {}
             for idx, qe in enumerate(st.session_state.question_expected):
                 qae_dict[idx+1] = QAE(question=qe[0], expected=qe[1])
-            session = BenchmarkSession(name=st.session_state.name, llm_chain=st.session_state.llm_chain, retrieval_strategy=st.session_state.retrieval_strategy, question_answer_expected=qae_dict, reports=st.session_state.reports, memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, k_i=st.session_state.k_i)
+            session = BenchmarkSession(name=st.session_state.name, 
+                                    #    embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                       llm_chain=st.session_state.llm_chain, 
+                                       retrieval_strategy=st.session_state.retrieval_strategy, 
+                                       question_answer_expected=qae_dict, 
+                                       reports=st.session_state.reports, 
+                                       memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, 
+                                       k_i=st.session_state.k_i)
             self.global_singleton.benchmark_session_manager.add_session(session)
             self.global_singleton.benchmark_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton

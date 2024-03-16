@@ -118,8 +118,9 @@ mydict = {
 """        
     
 class FileManager:
-    def __init__(self, path):
+    def __init__(self, path, index_name="index"):
         self.path = path
+        self.index_name = index_name
 
     # gets companies using predefined directory structure
     def load(self):

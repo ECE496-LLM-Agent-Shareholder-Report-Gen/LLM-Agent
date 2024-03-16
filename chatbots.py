@@ -12,6 +12,7 @@ from subquery_generator import SubQueryGenerator
 from template_formatter import LlamaTemplateFormatter
 
 import streamlit as st
+import GUI.misc as Gmisc
 
 class Chatbot(ABC):
 
@@ -32,7 +33,7 @@ class Chatbot(ABC):
         pass
 
     @abstractmethod
-    def st_render(self, question):
+    def st_render(self, question, skip=0):
         pass
 
     def render_st_with_score(self, question, cross_encoder=None):
@@ -91,7 +92,7 @@ class SimpleChatbot(Chatbot):
 
                 \n\n
                 Make sure to source where you got the information from. 
-                This source should include the company, year, the report type, and page number.
+                This source should include the company, year, the report type, and page number. 
                 """
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
@@ -145,9 +146,10 @@ class SimpleChatbot(Chatbot):
         return self.chain.stream({"question": question})
     
     """ render llm st response """
-    def st_render(self, question):
+    def st_render(self, question, skip=0):
+        self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
-        response = st.write_stream(stream)
+        response = Gmisc.write_stream(stream)
         return response
     
     
@@ -222,23 +224,24 @@ class FusionChatbot(Chatbot):
         return self.result_chain.stream({"context": context, "question": question})
     
     """ render llm st response """
-    def st_render(self, question):
+    def st_render(self, question, skip=0):
         all_responses = []
 
         # generate sub queries
         sub_query_stream = self.stream_sub_query_response(question)
 
-        sub_query_response = st.write_stream(sub_query_stream)
+        sub_query_response = Gmisc.write_stream(sub_query_stream)
         all_responses.append(sub_query_response)
 
         # check context
-        context = self.valid_context(sub_query_response)
+        self.retriever_strategy.set_skip(skip)
+        context = self.get_context(sub_query_response)
         
         if context == None:
             all_responses.append("Failed to retrieve context, we might not have been able to parse the LLM's sub queries, pleast try again.")
         else:
             final_stream = self.stream_result_response(question, context)
-            final_stream_response = st.write_stream(final_stream)
+            final_stream_response = Gmisc.write_stream(final_stream)
             all_responses.append(final_stream_response)
 
         full_response = "\n\n".join(all_responses)
@@ -380,8 +383,10 @@ class StepbackChatbot(Chatbot):
         questions = [match[-1] for match in all_matches]
 
         # answer the broken down questions
-        all_streams = self.answer_chain.batch(all_matches)
-
+        all_streams = []
+        for match in all_matches:
+            all_streams.append(self.answer_chain.stream(match))
+        
         return list(zip(all_streams, questions))
     
     def stream_final_response(self, question, sub_queries, responses):
@@ -408,16 +413,17 @@ class StepbackChatbot(Chatbot):
         return result_chain.stream(question)
     
     """ Render stepback llm chain response """
-    def st_render(self, question):
+    def st_render(self, question, skip=0):
         all_responses = []
 
         # generate sub queries
         sub_query_gen_stream = self.stream_sub_query_gen(question)
-        sub_query_response = st.write_stream(sub_query_gen_stream)
+        sub_query_response = Gmisc.write_stream(sub_query_gen_stream)
 
         all_responses.append(sub_query_response)
 
         # answer each sub query
+        self.retriever_strategy.set_skip(skip)
         sub_query_responses_streams_question = self.stream_sub_query_responses(sub_query_response)
 
         sub_queries = [q for s, q in sub_query_responses_streams_question]
@@ -425,13 +431,13 @@ class StepbackChatbot(Chatbot):
 
         for stream, sub_query in sub_query_responses_streams_question:
             st.write(f"<b>{sub_query}:</b>", unsafe_allow_html=True)
-            sub_query_answer = st.write_stream(stream)
+            sub_query_answer = Gmisc.write_stream(stream)
             sub_query_answers.append(sub_query_answer)
             all_responses.append(f"{sub_query}\n{sub_query_answer}")
 
         # get final result
         final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
-        final_response = st.write_stream(final_stream)
+        final_response = Gmisc.write_stream(final_stream)
 
         all_responses.append(final_response)
 
@@ -556,7 +562,8 @@ class SimpleStepbackChatbot(Chatbot):
         return self.simple_chain.stream(question)
     
     """ render llm st response """
-    def st_render(self, question):
+    def st_render(self, question, skip=0):
+        self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
-        response = st.write_stream(stream)
+        response = Gmisc.write_stream(stream)
         return response
