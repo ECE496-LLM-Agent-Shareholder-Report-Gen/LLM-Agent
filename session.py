@@ -5,7 +5,7 @@ from langchain.vectorstores.faiss import FAISS
 
 import datetime
 import json
-from chatbots import FusionChatbot, SimpleChatbot, StepbackChatbot
+from chatbots import FusionChatbot, SimpleChatbot, StepbackChatbot, AgentChatbot
 
 from retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
 
@@ -15,16 +15,16 @@ a user-LLM interaction """
 class Session:
 
     valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
-    valid_llm_chains = ["Simple Chain", "Fusion Chain", "Stepback Chain", "Simple Stepback Chain"]
+    valid_llm_chains = ["Simple Chain", "Fusion Chain", "Stepback Chain", "Simple Stepback Chain", "Agent Chain"]
 
-    def __init__(self, 
-                 name=None, 
-                 embeddings_model_name=None, 
-                 llm_chain=None, 
-                 retrieval_strategy=None, 
-                 reports=[], 
-                 memory_enabled=False, 
-                 k=None, 
+    def __init__(self,
+                 name=None,
+                 embeddings_model_name=None,
+                 llm_chain=None,
+                 retrieval_strategy=None,
+                 reports=[],
+                 memory_enabled=False,
+                 k=None,
                  k_i=None,
                  *args, **kwargs):
         self.reports = reports
@@ -42,18 +42,18 @@ class Session:
         self.memory_enabled = memory_enabled
         self.vectorstores = {}
         self.initialized = False
-     
+
     """ Initialize session for Q&A with LLM """
     def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None):
-        
+
         if not self.retrieval_strategy or not self.retrieval_strategy in self.valid_retrieval_strategies:
-            raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies) 
-        
+            raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies)
+
         if not self.llm_chain or not self.llm_chain in self.valid_llm_chains:
-            raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", self.valid_llm_chains) 
+            raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", self.valid_llm_chains)
 
         if len(self.reports) == 0:
-            raise Exception("No reports added") 
+            raise Exception("No reports added")
 
         # get vector stores from files
         self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports)
@@ -69,6 +69,8 @@ class Session:
 
         if self.llm_chain == "Simple Chain":
             self.init_simple_chain(index_generator, llm)
+        elif self.llm_chain == "Agent Chain":
+            self.init_agent_chain(index_generator, llm)
         elif self.llm_chain == "Fusion Chain":
             self.init_fusion_chain(llm)
         elif self.llm_chain == "Stepback Chain":
@@ -83,7 +85,7 @@ class Session:
     """ Init simple retriever strategy """
     def init_simple_retriever(self):
         print("initializing simple retriever strategy")
-        simple_retriever = SimpleRetrieverStrategy(k=self.k) 
+        simple_retriever = SimpleRetrieverStrategy(k=self.k)
         self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter"])
 
     """ Init reranker retriever strategy """
@@ -91,13 +93,13 @@ class Session:
         print("initializing Reranker retriever strategy")
         if cross_encoder == None:
             raise Exception("Tried to initailize Reranker strategy without a cross encoder")
-        reranker_retriever = ReRankerRetrieverStrategy(cross_encoder=cross_encoder, k=self.k, init_k=self.k_i) 
+        reranker_retriever = ReRankerRetrieverStrategy(cross_encoder=cross_encoder, k=self.k, init_k=self.k_i)
         self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter"])
 
     """ Init random retriever strategy """
     def init_random_retriever(self):
         print("initializing Reranker retriever strategy")
-        stochastic_retriever = StochasticRetrieverStrategy(k=self.k, fetch_k=self.k_i) 
+        stochastic_retriever = StochasticRetrieverStrategy(k=self.k, fetch_k=self.k_i)
         self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter"])
 
     """ Init Simple chain """
@@ -114,6 +116,21 @@ class Session:
             else:
                 index_generator.merge_vector_stores(vectorstore, vs)
         self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+
+        """ Init Simple chain """
+    def init_agent_chain(self, index_generator, llm):
+        print("initializing simple chatbot")
+        flat_vs = self.gen_vectorstore_flat()
+        vectorstore = None
+        iter_1 = True
+        # create one vector store
+        for vs in flat_vs:
+            if iter_1:
+                iter_1 = False
+                vectorstore = vs
+            else:
+                index_generator.merge_vector_stores(vectorstore, vs)
+        self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
 
     """ Init Fusion chain """
     def init_fusion_chain(self, llm):
@@ -147,8 +164,8 @@ class Session:
             index_path = os.path.join(os.path.dirname(report.file_path), "index")
             index_generator.save_vector_store(vectorstore, index_path)
         return vectorstore
-            
-    
+
+
     def load_vectorstore(self, file_manager, index_generator, embeddings, report):
         index_path = file_manager.get_index(report.company, report.year, report.report_type, report.quarter)
         if index_path:
@@ -156,7 +173,7 @@ class Session:
             return index_generator.load_vector_store(index_path, embeddings)
         else:
             return None
-    
+
     def populate_vectorstore(self, file_manager, index_generator, embeddings, reports):
         for report in reports:
             vectorstore = self.load_vectorstore(file_manager, index_generator, embeddings, report)
@@ -164,7 +181,7 @@ class Session:
                 vectorstore = self.generate_vectorstore(index_generator, embeddings, report)
             if report.quarter:
                 dict_vectorstore = { report.year: { report.report_type: { report.quarter: vectorstore } } }
-            else: 
+            else:
                 dict_vectorstore = { report.year: { report.report_type:  vectorstore } }
             self.vectorstores[report.company] = dict_vectorstore
 
@@ -179,16 +196,16 @@ class Session:
                 lst.append(v)
         return lst
 
-  
+
     def gen_vectorstore_flat(self):
-        
+
         return self.dict_to_list(self.vectorstores)
-    
-   
+
+
 
     def encode(self):
         return vars(self)
-    
+
     @classmethod
     def from_dict(cls, cls_dict):
         ses = cls(**cls_dict)
@@ -214,33 +231,33 @@ holds the state of a chat session, which represents
 a user-LLM interaction. It inherits from session, and uses
 conversation history """
 class ChatSession(Session):
-    def __init__(self, 
-                 name=None, 
-                 embeddings_model_name=None, 
-                 llm_chain=None, 
-                 retrieval_strategy=None, 
-                 conversation_history=[], 
-                 reports=[], 
-                 memory_enabled=False, 
-                 k=None, 
-                 k_i=None, 
-                 *args, 
+    def __init__(self,
+                 name=None,
+                 embeddings_model_name=None,
+                 llm_chain=None,
+                 retrieval_strategy=None,
+                 conversation_history=[],
+                 reports=[],
+                 memory_enabled=False,
+                 k=None,
+                 k_i=None,
+                 *args,
                  **kwargs):
-        super().__init__(name=name, 
-                         llm_chain=llm_chain, 
+        super().__init__(name=name,
+                         llm_chain=llm_chain,
                          embeddings_model_name=embeddings_model_name,
-                         retrieval_strategy=retrieval_strategy, 
-                         reports=reports, 
-                         memory_enabled=memory_enabled, 
-                         k=k, 
-                         k_i=k_i, 
-                         *args, 
+                         retrieval_strategy=retrieval_strategy,
+                         reports=reports,
+                         memory_enabled=memory_enabled,
+                         k=k,
+                         k_i=k_i,
+                         *args,
                          **kwargs)
         self.conversation_history = conversation_history
 
     def add_to_conversation(self, question=None, answer=None, replays=0):
         qa = QA(question, answer, replays=replays)
-        if not isinstance(self.conversation_history, list): 
+        if not isinstance(self.conversation_history, list):
             self.conversation_history = []
         self.conversation_history.append(qa)
 
@@ -254,7 +271,7 @@ class ChatSession(Session):
         ses.conversation_history = []
         ses.add_conversation_history(cls_dict['conversation_history'])
         return ses
-    
+
     def to_dict(self):
         ses_dict = super().to_dict()
         ses_dict["conversation_history"] = [qa.encode() for qa in self.conversation_history]
@@ -267,27 +284,27 @@ Holds the state of a benchmark session, which represents
 an LLM evaluation interaction. it inherits from Session, but instead
 of using conversation history it uses Question-Answer-Expected list """
 class BenchmarkSession(Session):
-    def __init__(self, 
-                 name=None, 
+    def __init__(self,
+                 name=None,
                  embeddings_model_name=None,
-                 llm_chain=None, 
-                 retrieval_strategy=None, 
-                 question_answer_expected={}, 
-                 reports=[], 
-                 memory_enabled=False, 
-                 k=None, 
+                 llm_chain=None,
+                 retrieval_strategy=None,
+                 question_answer_expected={},
+                 reports=[],
+                 memory_enabled=False,
+                 k=None,
                  k_i=None,
-                 *args, 
+                 *args,
                  **kwargs):
-        super().__init__(name=name, 
+        super().__init__(name=name,
                          embeddings_model_name=embeddings_model_name,
-                         llm_chain=llm_chain, 
-                         retrieval_strategy=retrieval_strategy, 
-                         reports=reports, 
+                         llm_chain=llm_chain,
+                         retrieval_strategy=retrieval_strategy,
+                         reports=reports,
                          memory_enabled=memory_enabled,
-                         k=k, 
+                         k=k,
                          k_i=k_i,
-                         *args, 
+                         *args,
                          **kwargs)
         self.question_answer_expected = question_answer_expected
 
@@ -308,7 +325,7 @@ class BenchmarkSession(Session):
         ses.question_answer_expected = {}
         ses.set_qae_from_dict(cls_dict['question_answer_expected'])
         return ses
-    
+
     def to_dict(self):
         ses_dict = super().to_dict()
         temp_qae_dict = {}
@@ -318,7 +335,7 @@ class BenchmarkSession(Session):
         return ses_dict
 
 
-        
+
 
 
 
@@ -332,7 +349,7 @@ class QA:
 
     def encode(self):
         return vars(self)
-    
+
 """ QAE
 class that represents a question, an answer, and an expeected answer """
 class QAE:
@@ -359,6 +376,6 @@ class Report:
         self.quarter = quarter
         self.file_path = file_path
         self.save = save
-    
+
     def encode(self):
         return vars(self)

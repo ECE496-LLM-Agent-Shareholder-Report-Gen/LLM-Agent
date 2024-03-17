@@ -8,13 +8,14 @@ from GUI.shared import load_global_singleton, load_llm
 #def not working might have messed up other parts, if you see this message and need me to fix it back message me on discord - mert
 class LLMRenderer:
     #def __init__(self, global_singleton, llm_path = None, llm_type = None, hug_api_key = None, hug_llm_name = None, opai_api_key = None):
-    def __init__(self, global_singleton, llm_path = "", llm_type = "", hug_api_key = "", hug_llm_name = "", opai_api_key = ""):
+    def __init__(self, global_singleton, llm_path = "", llm_type = "", hug_api_key = "", hug_llm_name = "", opai_api_key = "", opai_llm_name = ""):
         self.global_singleton = global_singleton
         self.llm_path = llm_path
         self.llm_type = llm_type
         self.hug_api_key = hug_api_key
         self.hug_llm_name = hug_llm_name
         self.opai_api_key = opai_api_key
+        self.opai_llm_name = opai_llm_name
         if "llm_path" not in st.session_state:
             st.session_state["llm_path"] = ""
         if "llm_type" not in st.session_state:
@@ -25,7 +26,8 @@ class LLMRenderer:
             st.session_state["hug_llm_name"] = ""
         if "opai_api_key" not in st.session_state:
             st.session_state["opai_api_key"] = ""
-        
+        if "opai_llm_name" not in st.session_state:
+            st.session_state["opai_llm_name"] = ""
 
     def render(self):
         self.render_info_for_dev()
@@ -46,6 +48,8 @@ class LLMRenderer:
             st.session_state["hug_llm_name"] = ""
         if "opai_api_key" not in st.session_state:
             st.session_state["opai_api_key"] = ""
+        if "opai_llm_name" not in st.session_state:
+            st.session_state["opai_llm_name"] = ""
         st.title("self.global_singleton.llm")
         st.markdown(self.global_singleton.llm)
         st.divider()
@@ -69,17 +73,19 @@ class LLMRenderer:
             st.session_state["hug_llm_name"] = ""
         if "opai_api_key" not in st.session_state:
             st.session_state["opai_api_key"] = ""
+        if "opai_llm_name" not in st.session_state:
+            st.session_state["opai_llm_name"] = ""
         st.title("Choose the LLM you would like to chat with")
         st.divider()
         if "llm_type_options" not in st.session_state:
-            st.session_state["llm_type_options"] = ["LLAMA","Huggingface", "Openai"]   
+            st.session_state["llm_type_options"] = ["None", "LLAMA","Huggingface", "Openai"]   
         st.subheader("Choose your Large Language Model", divider = "grey")
 
         left_col, right_col = st.columns(2)
         with left_col:
             #llm_type_options = ["LLAMA","Huggingface", "Openai"]
             #llm_type = st.selectbox("Select your LLM type", options=llm_type_options, key="llm_type")
-            self.llm_type = st.selectbox("Select your LLM type", options=["LLAMA","Huggingface", "Openai"])#, key="llm_type")
+            self.llm_type = st.selectbox("Select your LLM type", options=["None", "LLAMA","Huggingface", "Openai"])#, key="llm_type")
         with right_col:
             if self.llm_type == "LLAMA":
                 self.llm_path = st.selectbox("LLM", options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
@@ -89,6 +95,10 @@ class LLMRenderer:
                 self.global_singleton.llm_path = self.llm_path
                 #st.session_state["llm_path"] = self.llm_path
                 #st.session_state["llm_type"] = self.llm_type
+                self.global_singleton.hug_llm_name = None
+                st.session_state["global_singleton"].hug_llm_name = None
+                self.global_singleton.opai_llm_name = None
+                st.session_state["global_singleton"].opai_llm_name = None
 
             if self.llm_type == 'Huggingface':
                 self.hug_api_key = st.text_input("Please enter your Huggingface API access key", placeholder="Key")#, key="huggingface_api_key")
@@ -102,15 +112,26 @@ class LLMRenderer:
                 #st.session_state["hug_llm_name"] = huggingface_model_name
                 #st.session_state["hug_api_key"] = huggingface_api_key
                 #st.session_state["llm_type"] = self.llm_type
+                self.global_singleton.llm_path = None
+                st.session_state["global_singleton"].llm_path = None
+                self.global_singleton.opai_llm_name = None
+                st.session_state["global_singleton"].opai_llm_name = None
 
             if self.llm_type == "Openai":
                 self.opai_api_key = st.text_input("Please enter your openai api access key", placeholder="Key")#, key="opai_api_key")
+                self.opai_llm_name = st.selectbox("LLM", options=["gpt-4-turbo-preview","gpt-3.5-turbo"])#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
                 st.session_state["global_singleton"].opai_api_key = self.opai_api_key
                 st.session_state["global_singleton"].llm_type = self.llm_type
                 self.global_singleton.opai_api_key = self.opai_api_key
                 self.global_singleton.llm_type = self.llm_type
+                st.session_state["global_singleton"].opai_llm_name = self.opai_llm_name
+                self.global_singleton.opai_llm_name = self.opai_llm_name
                 #st.session_state["opai_api_key"] = opai_api_key
                 #st.session_state["llm_type"] = self.llm_type
+                self.global_singleton.llm_path = None
+                st.session_state["global_singleton"].llm_path = None
+                self.global_singleton.hug_llm_name = None
+                st.session_state["global_singleton"].hug_llm_name = None
 
 
     def render_load(self):
@@ -118,8 +139,9 @@ class LLMRenderer:
         load_llm_button = st.button("Load LLM", use_container_width = True)
         if load_llm_button:
             self.global_singleton.llm = load_llm(self.global_singleton)
+            st.session_state["global_singleton"].llm = self.global_singleton.llm
             load_llm_button = False
-            print("butona basildi global singleton.llm ici :////////", self.global_singleton.llm)
+            print("butona basildi global singleton.llm ici :////////", self.global_singleton.llm, self.global_singleton.hug_llm_name)
             print("iceri girmis render loadla loadladiktan sonra", self.global_singleton)
             #if self.global_singleton.llm_type == "LLAMA":
              #   print("runliyor kardesim")

@@ -14,6 +14,16 @@ from template_formatter import LlamaTemplateFormatter
 import streamlit as st
 import GUI.misc as Gmisc
 
+import sys
+sys.path.append('/groups/acmogrp/Large-Language-Model-Agent/llm_evaluator/model_testing/llm_agents')
+from llm_agents.agent import Agent
+from llm_agents.llm_wrapper import LLM_Wrapper
+
+
+from llm_agents.tools.python_repl import PythonREPLTool
+from llm_agents.tools.retriever_simple import RetrieverTool,createSimpleVectorStoreFromFiles,createBasicRetriever,createRAGChain
+
+
 class Chatbot(ABC):
 
     def __init__(self, retriever_strategy, llm, template_formatter=LlamaTemplateFormatter(), memory_limit=3000, progressive_memory=True, memory_active=False):
@@ -52,7 +62,7 @@ class Chatbot(ABC):
         # remove any curly braces from question and answer
         question = question.replace("{", "").replace("}","")
         answer = answer.replace("{", "").replace("}","")
-        
+
         curr_mem_length = len(question) + len(answer)
 
         # check if it is worthwhile to delete memory
@@ -72,11 +82,11 @@ class Chatbot(ABC):
                 # full reset
                 self.memory = []
                 self.mem_length = 0
-        
+
         self.memory.append((question, answer, curr_mem_length))
         self.mem_length += curr_mem_length
 
-       
+
 
 """ simple """
 class SimpleChatbot(Chatbot):
@@ -91,8 +101,8 @@ class SimpleChatbot(Chatbot):
                 Question: "{question}"
 
                 \n\n
-                Make sure to source where you got the information from. 
-                This source should include the company, year, the report type, and page number. 
+                Make sure to source where you got the information from.
+                This source should include the company, year, the report type, and page number.
                 """
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
@@ -104,7 +114,7 @@ class SimpleChatbot(Chatbot):
         )
         self.retriever_strategy.set_vectorstore (vectorstore)
         self.input_variables = ["question", "context"]
-        
+
         self.update_chain()
 
 
@@ -117,7 +127,7 @@ class SimpleChatbot(Chatbot):
 
         self.chain = (
              { "context": (RunnablePassthrough()
-              | RunnableLambda(self.retriever_strategy.retrieve_context)), 
+              | RunnableLambda(self.retriever_strategy.retrieve_context)),
               "question": RunnablePassthrough()}
              | self.prompt
              | self.llm
@@ -129,10 +139,10 @@ class SimpleChatbot(Chatbot):
         super().update_memory(question, answer)
 
         # update template
-        self.template = self.formatter.init_template_from_memory(system_message=self.system_message, 
-            instruction=self.instruction, 
+        self.template = self.formatter.init_template_from_memory(system_message=self.system_message,
+            instruction=self.instruction,
             memory=self.memory)
-        
+
         self.update_chain()
 
 
@@ -141,18 +151,108 @@ class SimpleChatbot(Chatbot):
         if self.memory_active:
             self.update_memory(question, response)
         return response
-    
+
     def stream(self, question):
         return self.chain.stream({"question": question})
-    
+
     """ render llm st response """
     def st_render(self, question, skip=0):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
         return response
-    
-    
+
+
+""" simple """
+class AgentChatbot(Chatbot):
+
+    system_message = """
+                You are a financial investment advisor who answers questions
+                about shareholder reports. You will be given a context and will answer the question using that context.
+                """
+    instruction = """
+               Context: "{context}"
+                \n\n
+                Question: "{question}"
+
+                \n\n
+                Make sure to source where you got the information from.
+                This source should include the company, year, the report type, and page number.
+                """
+
+    def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
+        super().__init__(retriever_strategy, llm, *args, **kwargs)
+        self.parser = StrOutputParser()
+        self.template = self.template_formatter.init_template(
+            system_message= self.system_message,
+            instruction=self.instruction
+        )
+        self.retriever_strategy.set_vectorstore (vectorstore)
+        self.input_variables = ["question", "context"]
+
+        self.update_chain()
+
+
+        self.memory = []
+        self.mem_length = 0
+
+
+
+    def update_chain(self):
+        self.prompt = PromptTemplate(template=self.template, input_variables=self.input_variables)
+
+        self.chain = (
+             { "context": (RunnablePassthrough()
+              | RunnableLambda(self.retriever_strategy.retrieve_context)),
+              "question": RunnablePassthrough()}
+             | self.prompt
+             | self.llm
+             | self.parser
+        )
+
+        self.llm_wrapper = LLM_Wrapper(llm=self.llm)
+
+        self.agent = Agent(llm=self.llm_wrapper, tools=[PythonREPLTool(), RetrieverTool(rag_chain=self.chain)])
+
+        self.chain = (
+        { "context": (RunnablePassthrough()
+        | RunnableLambda(self.retriever_strategy.retrieve_context)),
+        "question": RunnablePassthrough()}
+        | self.prompt
+        | self.llm
+        | self.parser
+        )
+
+
+    def update_memory(self, question, answer):
+        super().update_memory(question, answer)
+
+        # update template
+        self.template = self.formatter.init_template_from_memory(system_message=self.system_message,
+            instruction=self.instruction,
+            memory=self.memory)
+
+        self.update_chain()
+
+
+    def invoke(self, question):
+        response = self.agent.run(question)
+        #if self.memory_active:
+        #    self.update_memory(question, response)
+        return response
+
+    def stream(self, question):
+        yield self.llm("what is amd yield")
+        #return self.invoke(question)
+
+    """ render llm st response """
+    def st_render(self, question, skip=0):
+        self.retriever_strategy.set_skip(skip)
+        stream = self.stream(question)
+        response = Gmisc.write_stream(stream)
+        return response
+
+
 """ FusionChatbot """
 class FusionChatbot(Chatbot):
 
@@ -160,7 +260,7 @@ class FusionChatbot(Chatbot):
         You are a helpful assistant. Answer questions given the context. \
         Make sure to source where you got information from (given in the context). \
         This source should include the company, year, the report type, (quarter if \
-        possible) and page number. 
+        possible) and page number.
         """
 
     result_instruction = """
@@ -182,7 +282,7 @@ class FusionChatbot(Chatbot):
         )
 
         self.input_variables = ["question", "context"]
-        
+
         self.update_chain()
 
         self.memory = []
@@ -215,14 +315,14 @@ class FusionChatbot(Chatbot):
 
     def stream_sub_query_response(self, question):
         return self.sub_query_generator.stream(question)
-    
+
     def get_context(self, sub_query_response):
         context = self.sub_query_generator.retriever_multicontext(sub_query_response)
         return context
-    
+
     def stream_result_response(self, question, context):
         return self.result_chain.stream({"context": context, "question": question})
-    
+
     """ render llm st response """
     def st_render(self, question, skip=0):
         all_responses = []
@@ -236,7 +336,7 @@ class FusionChatbot(Chatbot):
         # check context
         self.retriever_strategy.set_skip(skip)
         context = self.get_context(sub_query_response)
-        
+
         if context == None:
             all_responses.append("Failed to retrieve context, we might not have been able to parse the LLM's sub queries, pleast try again.")
         else:
@@ -261,14 +361,14 @@ class StepbackChatbot(Chatbot):
     result_instruction = """
         {question}
         """.strip()
-    
+
     simple_system_message = """
         You are a helpful assistant. You will be given a context and will answer the \
         question using that context. Make sure to source where you got the \
         information from. This source should include the company, year, the report \
         type, and page number as reported at the start of the Excerpt.
         """.strip()
-    
+
     simple_instruction = """
         Context: "{context}" \
         \n\n\
@@ -276,8 +376,8 @@ class StepbackChatbot(Chatbot):
         """.strip()
 
 
-    """ 
-    clist = { 
+    """
+    clist = {
         "company": {
             "year": {
                 "report type": {
@@ -312,7 +412,7 @@ class StepbackChatbot(Chatbot):
         )
 
         self.input_variables = ["question", "context"]
-        
+
         self.update_chain()
 
         self.memory = []
@@ -322,13 +422,13 @@ class StepbackChatbot(Chatbot):
         self.simple_prompt = PromptTemplate(template=self.simple_template, input_variables=["question", "context"])
 
         self.simple_chain = (
-             { "context": itemgetter("context"), 
+             { "context": itemgetter("context"),
               "question": itemgetter("question")}
              | self.simple_prompt
              | self.llm
              | self.parser
             )
-        
+
         self.answer_chain = (
              RunnableLambda(self.sub_query_generator.retrieve_context_question_dict)
              | self.simple_prompt
@@ -340,7 +440,7 @@ class StepbackChatbot(Chatbot):
     def invoke(self, question):
         # get the broken down question
         sub_query_response = self.sub_query_generator.invoke(question)
-        
+
         # get the matches
         all_matches =  self.sub_query_generator.parse_questions(sub_query_response)
 
@@ -361,7 +461,7 @@ class StepbackChatbot(Chatbot):
         result_prompt =  PromptTemplate(template=result_template, input_variables=["question"])
 
         result_chain = (
-            { 
+            {
              "question": RunnablePassthrough()
              }
             | result_prompt
@@ -376,7 +476,7 @@ class StepbackChatbot(Chatbot):
 
     def stream_sub_query_gen(self, question):
         return self.sub_query_generator.stream(question)
-    
+
     def stream_sub_query_responses(self, sub_query_response):
         # get the matches
         all_matches =  self.sub_query_generator.parse_questions(sub_query_response)
@@ -386,9 +486,9 @@ class StepbackChatbot(Chatbot):
         all_streams = []
         for match in all_matches:
             all_streams.append(self.answer_chain.stream(match))
-        
+
         return list(zip(all_streams, questions))
-    
+
     def stream_final_response(self, question, sub_queries, responses):
         temp_mem = list(zip(sub_queries, responses))
         if temp_mem == None or len(temp_mem) == 0:
@@ -402,7 +502,7 @@ class StepbackChatbot(Chatbot):
         result_prompt =  PromptTemplate(template=result_template, input_variables=["question"])
 
         result_chain = (
-            { 
+            {
              "question": RunnablePassthrough()
              }
             | result_prompt
@@ -411,7 +511,7 @@ class StepbackChatbot(Chatbot):
         )
 
         return result_chain.stream(question)
-    
+
     """ Render stepback llm chain response """
     def st_render(self, question, skip=0):
         all_responses = []
@@ -446,11 +546,11 @@ class StepbackChatbot(Chatbot):
         return full_response
 
 
-        
+
 
 
 """ Simple stepback """
-class SimpleStepbackChatbot(Chatbot):    
+class SimpleStepbackChatbot(Chatbot):
     simple_system_message = """
                 You are a financial investment advisor who answers questions
                 about shareholder reports. You will be given a context and will answer the question using that context.
@@ -461,12 +561,12 @@ class SimpleStepbackChatbot(Chatbot):
                 {question}
 
                 \n\n
-                Make sure to source where you got the information from. 
+                Make sure to source where you got the information from.
                 This source should include the company, year, the report type, and page number.
                 """
 
-    """ 
-    clist = { 
+    """
+    clist = {
         "company": {
             "year": {
                 "report type": {
@@ -510,7 +610,7 @@ class SimpleStepbackChatbot(Chatbot):
         )
 
         self.input_variables = ["question", "context"]
-        
+
         self.update_chain()
 
         self.memory = []
@@ -524,7 +624,7 @@ class SimpleStepbackChatbot(Chatbot):
             k = self.k
             if k_left <= 0: # cant do anything more...
                 break
-            if k_left <= k: 
+            if k_left <= k:
                 k = k_left
 
             for year, year_data in company_data.items():
@@ -537,14 +637,14 @@ class SimpleStepbackChatbot(Chatbot):
                             context = self.retriever_strategy.retrieve_context(question, vectorstore=quarter_data, k=k)
                             context_list.append(context)
         return "\n\n".join(context_list)
-        
+
 
     def update_chain(self):
         self.simple_prompt = PromptTemplate(template=self.simple_template, input_variables=["question", "context"])
 
-     
+
         self.simple_chain = (
-             { "context": RunnableLambda(self.get_multi_context), 
+             { "context": RunnableLambda(self.get_multi_context),
               "question": RunnablePassthrough()}
              | self.simple_prompt
              | self.llm
@@ -557,10 +657,10 @@ class SimpleStepbackChatbot(Chatbot):
         if self.memory_active:
             self.update_memory(question, response)
         return response
-    
+
     def stream(self, question):
         return self.simple_chain.stream(question)
-    
+
     """ render llm st response """
     def st_render(self, question, skip=0):
         self.retriever_strategy.set_skip(skip)

@@ -2,12 +2,25 @@ import streamlit as st
 import os
 from global_singleton import GlobalSingleton
 from model_loader import LLMModelLoader, EmbeddingsLoader
-from transformers import AutoModel, AutoModelForCausalLM
-from langchain_openai import OpenAI, OpenAIEmbeddings
+from transformers import AutoModel, AutoModelForCausalLM, AutoTokenizer, pipeline
+from langchain_openai import OpenAI, OpenAIEmbeddings, ChatOpenAI
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings, HuggingFaceEmbeddings
 from sentence_transformers.cross_encoder import CrossEncoder
+import torch
+from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 
 
+def load_llm(_global_singleton):
+    if _global_singleton.llm_path is not None:
+        return load_llm_llama(_global_singleton.llm_path)
+    elif _global_singleton.hug_llm_name is not None:
+        return load_llm_huggingface(_global_singleton.hug_llm_name, _global_singleton.hug_api_key)
+    elif _global_singleton.opai_llm_name is not None:
+        return load_llm_openai(_global_singleton.opai_llm_name, _global_singleton.opai_api_key)
+    else:
+        return load_llm_default()
+
+"""
 def load_llm(_global_singleton):
     if _global_singleton.llm_type=="LLAMA":
         return load_llm_llama(_global_singleton.llm_path)
@@ -17,7 +30,7 @@ def load_llm(_global_singleton):
         return load_llm_openai(_global_singleton.opai_api_key)
     else:
         return load_llm_default()
-
+"""
 @st.cache_resource
 def load_llm_default():
     print("loading default llm")
@@ -37,17 +50,49 @@ def load_llm_llama(llm_path):
 def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
     print("loading huggingface llm: ", huggingface_model_name)
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
-        model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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", cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
-        #model = AutoModel.from_pretrained(huggingface_model_name, token = "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")#, api_key=huggingface_api_key)
-        return model
+        token = "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"
+        tokenizer = AutoTokenizer.from_pretrained(huggingface_model_name,#"deepset/roberta-base-squad2",
+                                                  #device_map='auto',
+                                                  token = token,
+                                                  cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
+        model = AutoModelForCausalLM.from_pretrained(huggingface_model_name,#"deepset/roberta-base-squad2",
+                                                    #device_map='auto',
+                                                    torch_dtype=torch.float16,
+                                                    load_in_8bit=True,
+                                                    token = token,
+                                                    cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
+        #return model
+        pipe = pipeline("text-generation",
+                            model = model,
+                            tokenizer = tokenizer,
+                            #device_map = "auto",
+                            min_new_tokens = -1,
+                            top_k = 30,
+                            #todo: change max_new_tokens since 385 not enough, but if tokens exceed some amount it crash, limit exceed
+                            max_new_tokens = 385
+                            )
+        return HuggingFacePipeline(pipeline=pipe, model_kwargs = {"temperature": 0.1})
+                                   #token = token
+                                   #)
+                                   #cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
+        """return HuggingFacePipeline.from_model_id(model_id = model,
+                                                     task = "text-generation",
+                                                     tokenizer = tokenizer,
+                                                     #device_map = "auto",
+                                                     min_new_tokens = -1,
+                                                     top_k = 30,
+                                                     token = token)"""
+        #model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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", cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
 
 @st.cache_resource
-def load_llm_openai(openai_api_key):
+def load_llm_openai(opai_llm_name, openai_api_key):
     print("open ai llm loadun icine girdi")
-    model = OpenAI(openai_api_key = "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")
-    return model
+    with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
+        model = ChatOpenAI(opai_llm_name, openai_api_key = "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")
+        #model = ChatOpenAI(model_name = "gpt-3.5-turbo", openai_api_key = "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")
+        return model
 
-############ word embedders:      
+############ word embedders:
 """
 @st.cache_resource
 def load_word_embedder():
@@ -80,11 +125,11 @@ def load_word_embedder_openai(openai_api_key):
 def load_word_embedder_huggingface(model_name):
     print("loading huggingface embeddings")
     with st.spinner(text="Loading and HuggingFace Embeddings model – hang tight! This should take 1-2 minutes."):
-        model_kwargs = {'device': 'cuda'}
+        #model_kwargs = {'device': 'cuda'}
         encode_kwargs = {'normalize_embeddings': True}
         hf = HuggingFaceEmbeddings(
             model_name=model_name,
-            model_kwargs=model_kwargs,
+            #model_kwargs=model_kwargs,
             encode_kwargs=encode_kwargs
         )
         return hf

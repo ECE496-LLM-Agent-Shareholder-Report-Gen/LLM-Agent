@@ -4,7 +4,7 @@ from session import QAE, BenchmarkSession, ChatSession, Report, Session
 
 import os
 
-"""Everything pertaining to the sessions for the GUI. 
+"""Everything pertaining to the sessions for the GUI.
 This class creates the session itself, and is responsible for
 populating Sessions."""
 class SessionRenderer:
@@ -28,7 +28,7 @@ class SessionRenderer:
             st.session_state['memory_enabled'] = False
         if "widget_key" not in st.session_state:
             st.session_state["widget_key"] = str(randint(1000, 100000000))
-        
+
     def render(self):
         if self.isBenchmark:
             self.render_header_benchmark()
@@ -84,7 +84,7 @@ class SessionRenderer:
         st.session_state["widget_key"] = str(randint(1000, 100000000))
         st.rerun()
 
-  
+
     # renders the component that lets users choose what reports to query on
     def render_report_loader(self):
         st.subheader('Choose your Shareholder Reports', divider='grey')
@@ -107,13 +107,13 @@ class SessionRenderer:
         report_type = None
         report_quarter = None
         report_type_other = None
-        
+
         left_col, right_col = st.columns(2)
         with left_col:
             company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
             report_type_options = ["10K","10Q", "Other"]
             report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
-            
+
 
         with right_col:
             year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
@@ -124,7 +124,7 @@ class SessionRenderer:
                 report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
 
         save_report = st.checkbox("Would you like to save the report for future use?", value=True)
-        
+
         sec_filing = st.text_input("Or find an SEC filing by Company Ticker or CIK", placeholder="Company Ticker or CIK...", max_chars=20, key="sec_filing")
         # do sec filing related fetching...
 
@@ -152,10 +152,10 @@ class SessionRenderer:
             selected_quarters = st.multiselect("Quarter (if 10Q)", quarters)
             pass
 
-        
+
 
         submitted = st.button("Add Report", use_container_width=True)
-        
+
         # file(s) submitted
         if submitted:
             if uploaded_file:
@@ -197,7 +197,7 @@ class SessionRenderer:
                 else:
                     st.warning("Failed to add from uploaded reports: Missing report info")
 
-           
+
 
             # handle reports that were added from saved reports
             if selected_companies:
@@ -229,9 +229,9 @@ class SessionRenderer:
                     else:
                         st.warning("Failed to add from saved reports: Missing years/report types")
 
-                
+
         # clear the inputs
-                                                  
+
         existing_files = st.session_state.reports
         if len(existing_files) == 10:
             st.info("Maximum Number of files reached (10)!")
@@ -254,7 +254,7 @@ class SessionRenderer:
                         st.markdown(f"Quarter: {existing_file.quarter}")
                 with close_col:
                     st.button(":x:", key=existing_file.file_path, on_click=self.remove_report, args=[existing_file.file_path])
-        
+
 
 
     def render_retrieval_strategy_selector(self):
@@ -287,7 +287,7 @@ class SessionRenderer:
         with container:
             for strategy in strategies:
                 strategy['c'] = st.markdown(f"<b>{strategy['title']}</b><br>{strategy['description']}", unsafe_allow_html=True)
-            
+
             strategy_options = [strategy['title'] for strategy in strategies]
             st.session_state.retrieval_strategy = st.selectbox("Choose a Retrieval Strategy", options=strategy_options, key="retriever_select")
             if st.session_state.retrieval_strategy:
@@ -296,7 +296,7 @@ class SessionRenderer:
                 for strategy in strategies:
                     if strategy['title'] == st.session_state.retrieval_strategy:
                         strat = strategy
-                    
+
                 col1, col2 = st.columns(2)
                 with col1:
                     st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=8)
@@ -314,6 +314,11 @@ class SessionRenderer:
             'key': 'SC',
             'title': 'Simple Chain',
             'description': 'This input is passed to the language model, and the language model answers it directly.',
+        },
+        {
+            'key': 'A',
+            'title': 'Agent Chain',
+            'description': 'This input is passed to the language model, the language model then breaks the question down into smaller questions to ask about each shareholder report, and answers those questions. The answers to these smaller questions is fed as context to answer the original question',
         },
         {
             'key': 'SbC',
@@ -334,7 +339,7 @@ class SessionRenderer:
         with container:
             for strategy in strategies:
                 st.markdown(f"<b>{strategy['title']}</b><br>{strategy['description']}", unsafe_allow_html=True)
-            
+
                 strategy_options = [strategy['title'] for strategy in strategies]
             st.session_state.llm_chain = st.selectbox("Choose an LLM Chain", options=strategy_options, key='chain_select')
 
@@ -342,19 +347,19 @@ class SessionRenderer:
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
-            session = ChatSession(name=st.session_state.name, 
+            session = ChatSession(name=st.session_state.name,
                                     # embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                    llm_chain=st.session_state.llm_chain, 
-                                    retrieval_strategy=st.session_state.retrieval_strategy, 
-                                    reports=st.session_state.reports, 
+                                    llm_chain=st.session_state.llm_chain,
+                                    retrieval_strategy=st.session_state.retrieval_strategy,
+                                    reports=st.session_state.reports,
                                     memory_enabled=st.session_state.memory_enabled,
-                                    k=st.session_state.k, 
+                                    k=st.session_state.k,
                                     k_i=st.session_state.k_i)
             self.global_singleton.chat_session_manager.add_session(session)
             self.global_singleton.chat_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton
             st.switch_page("pages/chat_page.py")
-    
+
     def render_create_benchmark(self):
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
@@ -363,13 +368,13 @@ class SessionRenderer:
             qae_dict = {}
             for idx, qe in enumerate(st.session_state.question_expected):
                 qae_dict[idx+1] = QAE(question=qe[0], expected=qe[1])
-            session = BenchmarkSession(name=st.session_state.name, 
+            session = BenchmarkSession(name=st.session_state.name,
                                     #    embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                       llm_chain=st.session_state.llm_chain, 
-                                       retrieval_strategy=st.session_state.retrieval_strategy, 
-                                       question_answer_expected=qae_dict, 
-                                       reports=st.session_state.reports, 
-                                       memory_enabled=st.session_state.memory_enabled,k=st.session_state.k, 
+                                       llm_chain=st.session_state.llm_chain,
+                                       retrieval_strategy=st.session_state.retrieval_strategy,
+                                       question_answer_expected=qae_dict,
+                                       reports=st.session_state.reports,
+                                       memory_enabled=st.session_state.memory_enabled,k=st.session_state.k,
                                        k_i=st.session_state.k_i)
             self.global_singleton.benchmark_session_manager.add_session(session)
             self.global_singleton.benchmark_session_manager.set_active_session(session)

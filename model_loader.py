@@ -130,4 +130,5 @@ class EmbeddingsLoader:
 
     # loads embeddings
     def load_bge(self, **kwargs):
-        return HuggingFaceEmbeddings(**kwargs)  
+        self.real_embeddings_args.update(kwargs)
+        return HuggingFaceEmbeddings(self.real_embeddings_args)  

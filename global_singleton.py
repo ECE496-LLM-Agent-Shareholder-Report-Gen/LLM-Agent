@@ -45,6 +45,7 @@ class GlobalSingleton:
     hug_llm_name = None
     hug_api_key = None
     opai_api_key = None
+    opai_llm_name = None
     #vars for embedding_load
     embedding_type = None
     opai_embedding_name = None
@@ -69,6 +70,7 @@ class GlobalSingleton:
             cls._instance.hug_llm_name = None
             cls._instance.hug_api_key = None
             cls._instance.opai_api_key = None
+            cls._instance.opai_llm_name = None
 
             cls._instance.embedding_type = None
             cls._instance.opai_embedding_name = None
