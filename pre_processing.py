@@ -8,6 +8,12 @@ class for generating the vector stores
 """
 class IndexGenerator:
     
+    def __init__(self, index_name=None):
+        if index_name == None:
+            self.index_name = "index"
+        else:
+            self.index_name = index_name.replace("/", "_")
+
     # pre process files into chunks. Apply processing techniques into the individual
     def pre_process(self, pages):
         chunk_size = 500
@@ -52,7 +58,7 @@ class IndexGenerator:
 
     # generate embeddings for pdfs in directory, save to index_path
     def save_vector_store(self, vector_store, index_path):
-        vector_store.save_local(index_path)
+        vector_store.save_local(index_path, index_name=self.index_name)
 
 
     # merge file into an existing vector store
@@ -61,7 +67,10 @@ class IndexGenerator:
         return vectore_store1
 
     def load_vector_store(self, path, embeddings):
-        return FAISS.load_local(folder_path=path, embeddings=embeddings, allow_dangerous_deserialization=True)
+        return FAISS.load_local(folder_path=path,
+                                 embeddings=embeddings,
+                                 allow_dangerous_deserialization=True, 
+                                 index_name=self.index_name)
 
 
 

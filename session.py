@@ -27,6 +27,8 @@ class Session:
                  k=None,
                  k_i=None,
                  *args, **kwargs):
+
+        print("init session")
         self.reports = reports
         self.llm_chain = llm_chain
         self.retrieval_strategy = retrieval_strategy
@@ -44,7 +46,7 @@ class Session:
         self.initialized = False
 
     """ Initialize session for Q&A with LLM """
-    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None):
+    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None, load=True):
 
         if not self.retrieval_strategy or not self.retrieval_strategy in self.valid_retrieval_strategies:
             raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies)
@@ -56,7 +58,7 @@ class Session:
             raise Exception("No reports added")
 
         # get vector stores from files
-        self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports)
+        self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports, load=load)
 
         if self.retrieval_strategy == "Simple Retrieval Strategy":
             self.init_simple_retriever()
@@ -66,6 +68,9 @@ class Session:
             self.init_random_retriever()
         else:
             raise Exception("No retriever strategy initialized")
+
+        print("############### \n")
+        print("loading chain \n")
 
         if self.llm_chain == "Simple Chain":
             self.init_simple_chain(index_generator, llm)
@@ -81,6 +86,12 @@ class Session:
             raise Exception("No Chatbot initialized")
 
         self.initialized = True
+
+    def deinitialize(self):
+        self.initialized = False
+        self.retriever_strategy_obj = None
+        self.chatbot = None
+        self.vectorstores = None
 
     """ Init simple retriever strategy """
     def init_simple_retriever(self):
@@ -167,16 +178,21 @@ class Session:
 
 
     def load_vectorstore(self, file_manager, index_generator, embeddings, report):
-        index_path = file_manager.get_index(report.company, report.year, report.report_type, report.quarter)
+        if file_manager.index_exists(report.company, report.year, report.report_type, report.quarter) == False:
+            return None
+        index_path = file_manager.create_index(report.company, report.year, report.report_type, report.quarter)
         if index_path:
             print("index path: ", index_path)
             return index_generator.load_vector_store(index_path, embeddings)
         else:
             return None
 
-    def populate_vectorstore(self, file_manager, index_generator, embeddings, reports):
+    def populate_vectorstore(self, file_manager, index_generator, embeddings, reports, load=True):
         for report in reports:
-            vectorstore = self.load_vectorstore(file_manager, index_generator, embeddings, report)
+            if load:
+                vectorstore = self.load_vectorstore(file_manager, index_generator, embeddings, report)
+            else:
+                vectorstore = None
             if vectorstore == None:
                 vectorstore = self.generate_vectorstore(index_generator, embeddings, report)
             if report.quarter:

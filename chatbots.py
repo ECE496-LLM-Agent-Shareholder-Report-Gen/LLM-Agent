@@ -17,11 +17,9 @@ import GUI.misc as Gmisc
 import sys
 sys.path.append('/groups/acmogrp/Large-Language-Model-Agent/llm_evaluator/model_testing/llm_agents')
 from llm_agents.agent import Agent
-from llm_agents.llm_wrapper import LLM_Wrapper
-
-
+from llm_agents.llm_wrap import LLM_Wrapper
 from llm_agents.tools.python_repl import PythonREPLTool
-from llm_agents.tools.retriever_simple import RetrieverTool,createSimpleVectorStoreFromFiles,createBasicRetriever,createRAGChain
+from llm_agents.tools.retriever_simple import RetrieverTool
 
 
 class Chatbot(ABC):
@@ -46,16 +44,28 @@ class Chatbot(ABC):
     def st_render(self, question, skip=0):
         pass
 
-    def render_st_with_score(self, question, cross_encoder=None):
+    def render_st_with_score(self, question, expected, cross_encoder=None):
         response = self.st_render(question)
         score = None
         start_time = time.time_ns()
         if cross_encoder:
-            score = cross_encoder.predict([question, response])
+            score = cross_encoder.predict([expected, response])
         stop_time = time.time_ns()
         duration = stop_time - start_time
         duration_s = duration/1e9
         return response, score, duration_s
+
+    def invoke_with_score(self, question, expected, cross_encoder=None):
+        response = self.invoke(question)
+        score = None
+        start_time = time.time_ns()
+        if cross_encoder:
+            score = cross_encoder.predict([expected, response])
+        stop_time = time.time_ns()
+        duration = stop_time - start_time
+        duration_s = duration/1e9
+        return response, score, duration_s
+
 
 
     def update_memory(self, question, answer):
@@ -102,7 +112,7 @@ class SimpleChatbot(Chatbot):
 
                 \n\n
                 Make sure to source where you got the information from.
-                This source should include the company, year, the report type, and page number.
+                This source should include the company, year, the report type, and page number. This source should ONLY come from the excerpts in the context. Do NOT post any links.
                 """
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
@@ -147,13 +157,13 @@ class SimpleChatbot(Chatbot):
 
 
     def invoke(self, question):
-        response = self.chain.invoke({"question": question})
+        response = self.chain.invoke(question)
         if self.memory_active:
             self.update_memory(question, response)
         return response
 
     def stream(self, question):
-        return self.chain.stream({"question": question})
+        return self.chain.stream(question)
 
     """ render llm st response """
     def st_render(self, question, skip=0):
@@ -166,19 +176,23 @@ class SimpleChatbot(Chatbot):
 """ simple """
 class AgentChatbot(Chatbot):
 
-    system_message = """
-                You are a financial investment advisor who answers questions
-                about shareholder reports. You will be given a context and will answer the question using that context.
-                """
-    instruction = """
-               Context: "{context}"
-                \n\n
-                Question: "{question}"
 
-                \n\n
-                Make sure to source where you got the information from.
-                This source should include the company, year, the report type, and page number.
-                """
+
+    #system_message = """
+    #            You are a financial investment advisor who answers questions
+    #            about shareholder reports. You will be given a context and will answer the question using that context.
+    #            """
+    #instruction = """
+    #           Context: "{context}"
+    #            \n\n
+    #            Question: "{question}"
+
+    #            \n\n
+    #            Make sure to source where you got the information from.
+    #            This source should include the company, year, the report type, and page number.
+    #            """
+    #
+
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
         super().__init__(retriever_strategy, llm, *args, **kwargs)
@@ -202,55 +216,46 @@ class AgentChatbot(Chatbot):
         self.prompt = PromptTemplate(template=self.template, input_variables=self.input_variables)
 
         self.chain = (
-             { "context": (RunnablePassthrough()
-              | RunnableLambda(self.retriever_strategy.retrieve_context)),
-              "question": RunnablePassthrough()}
-             | self.prompt
-             | self.llm
-             | self.parser
-        )
+              { "context": (RunnablePassthrough()
+               | RunnableLambda(self.retriever_strategy.retrieve_context)),
+               "question": RunnablePassthrough()}
+              | self.prompt
+              | self.llm
+              | self.parser
+         )
 
         self.llm_wrapper = LLM_Wrapper(llm=self.llm)
 
         self.agent = Agent(llm=self.llm_wrapper, tools=[PythonREPLTool(), RetrieverTool(rag_chain=self.chain)])
 
-        self.chain = (
-        { "context": (RunnablePassthrough()
-        | RunnableLambda(self.retriever_strategy.retrieve_context)),
-        "question": RunnablePassthrough()}
-        | self.prompt
-        | self.llm
-        | self.parser
-        )
-
 
     def update_memory(self, question, answer):
         super().update_memory(question, answer)
 
-        # update template
+         # update template
         self.template = self.formatter.init_template_from_memory(system_message=self.system_message,
-            instruction=self.instruction,
-            memory=self.memory)
+             instruction=self.instruction,
+             memory=self.memory)
 
         self.update_chain()
 
 
     def invoke(self, question):
         response = self.agent.run(question)
-        #if self.memory_active:
-        #    self.update_memory(question, response)
         return response
 
     def stream(self, question):
-        yield self.llm("what is amd yield")
-        #return self.invoke(question)
+        yield self.invoke(question)
 
-    """ render llm st response """
+
+
     def st_render(self, question, skip=0):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
         return response
+
+
 
 
 """ FusionChatbot """

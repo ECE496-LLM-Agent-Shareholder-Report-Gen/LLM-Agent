@@ -5,7 +5,7 @@ from session import Report, Session
 
 import os
 
-"""Everything pertaining to the sessions for the GUI. 
+"""Everything pertaining to the sessions for the GUI.
 This class creates the session itself, and is responsible for
 populating Sessions."""
 class ChatRenderer:
@@ -13,27 +13,47 @@ class ChatRenderer:
     def __init__(self, global_singleton):
         self.global_singleton = global_singleton
         if global_singleton.chat_session_manager and global_singleton.chat_session_manager.active_session:
-            self.session = global_singleton.chat_session_manager.active_session 
+            self.session = global_singleton.chat_session_manager.active_session
             print("Chatting with active session: ", self.session)
-            if not self.session.initialized:
-                print("initialized session!")
-                with st.spinner("initializing session..."):
-                    self.session.initialize(global_singleton.index_generator, global_singleton.file_manager, global_singleton.llm, global_singleton.embeddings)
+
         else:
             print("no active session!")
             st.switch_page("streamlit_app.py")
-    
+
     def render(self):
         self.render_header()
         self.render_conversation()
 
     def render_header(self):
         st.title(self.session.name)
-        render_session_info(self.session)
+        with st.empty():
+            render_session_info(self.session)
+        col1, col2, col3 = st.columns([0.1, 0.2, 0.7])
+        if not self.session.initialized:
+            with col1:
+                    init_soft = st.button("Load", help="Load from existing vector stores (if they exist), and create embeddings for the files that don't have any vector store")
+                    if init_soft:
+                        with st.spinner("Loading session..."):
+                            self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings)
+                            st.rerun()
+            with col2:
+                init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_1")
+                if init_hard:
+                        with st.spinner("Re-Initializing session..."):
+                            self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, load=False)
+                            st.rerun()
+        else:
+            init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_2")
+            if init_hard:
+                with st.spinner("Re-Initializing session..."):
+                    self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, load=False)
+                    st.rerun()
 
 
     def render_conversation(self):
         # Initialize chat history
+        with st.chat_message("ai"):
+            st.markdown("What would you like to know?")
 
         replay = None
         replay_q = None
@@ -48,7 +68,7 @@ class ChatRenderer:
                 st.markdown(qa.answer)
 
         # Accept user input
-        question = st.chat_input("Say something")
+        question = st.chat_input("Say something", disabled=not self.session.initialized)
         if question:
             # Display user message in chat message container
             with st.chat_message("user"):
@@ -66,11 +86,9 @@ class ChatRenderer:
                 replays = replay_q.replays
                 if replays == None:
                     replays = 0
-                full_response = self.session.chatbot.invoke(question)
-                #full_response = self.session.chatbot.st_render(replay_q.question, replays)
+                full_response = self.session.chatbot.st_render(replay_q.question, replays+1)
                 full_response = full_response
-                self.session.add_to_conversation(replay_q.question, full_response, replays)
+                self.session.add_to_conversation(replay_q.question, full_response, replays+1)
                 st.rerun()
-           
-    
-    
+
+

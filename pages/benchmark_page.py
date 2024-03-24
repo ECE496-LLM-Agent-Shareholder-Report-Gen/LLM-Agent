@@ -1,5 +1,5 @@
 import streamlit as st
-from GUI.session_renderer import BenchmarkRenderer
+from GUI.benchmark_renderer import BenchmarkRenderer
 from GUI.shared import load_global_singleton, navbar
 
 if not "global_singleton" in st.session_state:

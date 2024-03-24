@@ -347,14 +347,16 @@ class SessionRenderer:
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
+            print("creating session")
             session = ChatSession(name=st.session_state.name,
-                                    # embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                    #embeddings_model_name=self.global_singleton.embeddings_model_name,
                                     llm_chain=st.session_state.llm_chain,
                                     retrieval_strategy=st.session_state.retrieval_strategy,
                                     reports=st.session_state.reports,
                                     memory_enabled=st.session_state.memory_enabled,
                                     k=st.session_state.k,
                                     k_i=st.session_state.k_i)
+            st.session_state.reports = []
             self.global_singleton.chat_session_manager.add_session(session)
             self.global_singleton.chat_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton
@@ -376,6 +378,7 @@ class SessionRenderer:
                                        reports=st.session_state.reports,
                                        memory_enabled=st.session_state.memory_enabled,k=st.session_state.k,
                                        k_i=st.session_state.k_i)
+            st.session_state.reports = []
             self.global_singleton.benchmark_session_manager.add_session(session)
             self.global_singleton.benchmark_session_manager.set_active_session(session)
             st.session_state["global_singleton"] = self.global_singleton

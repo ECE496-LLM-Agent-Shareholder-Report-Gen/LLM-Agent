@@ -90,15 +90,17 @@ class LLMModelLoader:
         self.model_name = model_name
 
     def load(self, streaming=True, **kwargs):
+        #print(1)
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
+        #print(2)
         return LlamaCpp(
             **self.AVAILABLE_MODELS[self.model_name],
             n_batch=512,
-            max_tokens=1200,
+            max_tokens=500,
             streaming=streaming,
             #f16_kv = True,
             callback_manager=callback_manager,
-            verbose=False, # Verbose is required to pass to the callback manager
+            verbose=True, # Verbose is required to pass to the callback manager
             **kwargs
         )
 
@@ -117,18 +119,20 @@ class LLMModelLoader:
    
 
 class EmbeddingsLoader:
+
+    model_name = "BAAI/bge-large-en-v1.5"
     def __init__(self, **kwargs):
         embeddings_path = "/groups/acmogrp/Large-Language-Model-Agent/language_models/word_embeddings/BAAI_bge-large-en-v1.5"
        
-        real_embeddings_args = {
+        self.real_embeddings_args = {
             "model_kwargs": {'device': 'cuda'},
             "encode_kwargs": {'normalize_embeddings': True},
             "model_name": embeddings_path
         }
 
-        real_embeddings_args.update(kwargs)
+        self.real_embeddings_args.update(kwargs)
 
     # loads embeddings
     def load_bge(self, **kwargs):
         self.real_embeddings_args.update(kwargs)
-        return HuggingFaceEmbeddings(self.real_embeddings_args)  
+        return HuggingFaceEmbeddings(**self.real_embeddings_args)  

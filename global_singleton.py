@@ -42,14 +42,17 @@ class GlobalSingleton:
     #vars for llm_load
     llm_path = None
     llm_type = None
+    llm_model = None
     hug_llm_name = None
     hug_api_key = None
     opai_api_key = None
     opai_llm_name = None
     #vars for embedding_load
     embedding_type = None
+    embeddings_model = None
+    cross_encoder_model = None
     opai_embedding_name = None
-    hug_embedding_name = None #todo: or store the path tbd
+    hug_embedding_name = None 
 
     def __new__(cls, content_path='./content/companies', chat_session_path='./saved_sessions.json', benchmark_session_path='./benchmark_session.json'):
         if cls._instance is None:
@@ -66,23 +69,25 @@ class GlobalSingleton:
             cls._instance.chat_session_path = chat_session_path
             cls._instance.benchmark_session_path = benchmark_session_path
             cls._instance.llm_path = None
+            cls._instance.llm_model = None
             cls._instance.llm_type = None
             cls._instance.hug_llm_name = None
             cls._instance.hug_api_key = None
             cls._instance.opai_api_key = None
             cls._instance.opai_llm_name = None
-
+            cls._instance.embeddings_model = None
+            cls._instance.cross_encoder_model = None
             cls._instance.embedding_type = None
             cls._instance.opai_embedding_name = None
             cls._instance.hug_embedding_name = None
         print(cls._instance, cls._instance.llm)
         return cls._instance
         
-    def load_index_generator(self):
-        self.index_generator = IndexGenerator()
+    def load_index_generator(self,index_name=None):
+        self.index_generator = IndexGenerator(index_name=index_name)
     
-    def load_file_manager(self):
-        self.file_manager = FileManager(self.content_path)
+    def load_file_manager(self, index_name=None):
+        self.file_manager = FileManager(self.content_path, index_name=index_name)
         self.file_manager.load()
     
     def load_chat_session_manager(self):
