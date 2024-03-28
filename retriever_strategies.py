@@ -62,7 +62,7 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         if vectorstore != None:
             vs = vectorstore
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         if k == None:
             k = self.k
         if relevant_documents == None:
@@ -90,7 +90,7 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
         if k == None:
             k = self.k
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         if relevant_documents == None:
             # get relevant documents
             relevant_documents = vs.similarity_search(question,  k=self.init_k+self.skip*k, *args, **kwargs)
@@ -129,7 +129,7 @@ class NextRetrieverStrategy(RetrieverStrategy):
         if vectorstore != None:
             vs = vectorstore
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         
 
         # get question count and update it
@@ -166,7 +166,7 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
             vs = vectorstore
             print("STRATEGY: Using self inserted vectorstore!")
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         
         # set k
         if k == None:

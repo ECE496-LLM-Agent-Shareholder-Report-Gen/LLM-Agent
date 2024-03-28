@@ -300,6 +300,8 @@ class SessionManager:
                 session = self._session_cls.from_dict(ss)
                 self.sessions[name] = session
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             print(e)
         # print("done loading sessions: ", self.sessions)
 

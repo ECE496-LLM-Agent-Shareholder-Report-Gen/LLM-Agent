@@ -334,7 +334,7 @@ class BenchmarkSession(Session):
 
     def set_qae_from_dict(self, qae_dict):
         for id, qae in qae_dict.items():
-            self.update(id, **qae)
+            self.update_qae(id, **qae)
 
     @classmethod
     def from_dict(cls, cls_dict):

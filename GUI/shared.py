@@ -253,27 +253,29 @@ def navbar(global_singleton):
                                 }
                                 """,
                         ):
-                         switch_page = st.button(session_name, 
+                        switch_page_b = st.button(session_name, 
                                             key=f"b_{session_name}", 
                                             on_click=link_clicked, 
-                                            args=[session, global_singleton.chat_session_manager], 
+                                            args=[session, global_singleton.benchmark_session_manager], 
                                             use_container_width=True)
                          
                 else:
-                    switch_page = st.button(session_name, 
+                    switch_page_b = st.button(session_name, 
                                             key=f"b_{session_name}", 
                                             on_click=link_clicked, 
-                                            args=[session, global_singleton.chat_session_manager], 
+                                            args=[session, global_singleton.benchmark_session_manager], 
                                             use_container_width=True)
-            if switch_page:
+            if switch_page_b:
                 if global_singleton.chat_session_manager.active_session:
                     global_singleton.chat_session_manager.active_session.deinitialize()
                     global_singleton.chat_session_manager.active_session = None
 
-                st.switch_page("pages/benchmark_page.py")
+
+                st.switch_page("pages/benchmark_eval_page.py")
             save_benchmarks = st.button("Save benchmarks", use_container_width=True, key="b_save")
             if save_benchmarks:
-                pass
+                global_singleton.benchmark_session_manager.save()
+
         else:
             st.markdown("No benchmarks")
         new_benchmark = st.button("＋ New Benchmark", use_container_width=True, key="b_create")

@@ -26,11 +26,9 @@ class BenchmarkEvalRenderer:
         st.divider()
         self.render_question_expected()
 
-    @st.cache_data
     def get_qae_list(_self):
         return _self.session.qae_to_dict_list()
     
-    @st.cache_data
     def convert_dict_to_csv(_self, _data_list):
         # IMPORTANT: Cache the conversion to prevent computation on every rerun
         df = pd.DataFrame(_data_list)
@@ -95,13 +93,23 @@ class BenchmarkEvalRenderer:
 
     """ Render chart """
     def render_chart(self):
-        similarity_scores = []
+        chart_data = []
+        average_str = "N/A"
+        average = 0.0
+        num_calc = 0
         for idx, qae in self.session.question_answer_expected.items():
-            similarity_scores.append(qae.similarity_score)
-        
+            chart_data.append({"Q&A": idx, "Similarity Score": qae.similarity_score})
+            if qae.similarity_score:
+                num_calc += 1
+                average = (qae.similarity_score + (average * (num_calc - 1))) / num_calc
 
+        df = pd.DataFrame(chart_data)
+        if average > 0.0:
+            average_str = f"{average:.3f}"
         st.subheader("Similarity Scores", divider="grey")
-        st.line_chart(similarity_scores)
+        st.markdown(f"<b>Average: </b> {average_str}", unsafe_allow_html=True)
+        if num_calc != 0:
+            st.line_chart(df, x="Q&A", y="Similarity Score")
 
     """ Render a single QAE box, without the title """
     def render_qae_box(self, question=None, expected=None, answer=None, similarity_score=None, response_time=None, cutoff=70, col1_width=0.2, col2_witdh=0.8):
@@ -231,8 +239,6 @@ class BenchmarkEvalRenderer:
         status = st.session_state[f"benchmark_{self.session.name}"]["status"]
         test_type = st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"]
         comp_idxs = st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"]
-        print("completed idxs: ", comp_idxs)
-        print("idxs to compute: ",  st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"])
         containers = [st.container(border=True) for x in range(len(self.session.question_answer_expected.items()))]
         empty_containers = [st.empty() for x in range(len(self.session.question_answer_expected.items()))]
 
@@ -276,6 +282,8 @@ class BenchmarkEvalRenderer:
             else:
                 final_response, score, response_time = self.session.chatbot.invoke_with_score(curr_qae.question,expected=curr_qae.expected,cross_encoder= self.global_singleton.cross_encoder)
             if final_response:
+                if score:
+                    score = score.astype(float)
                 self.session.update_qae(id=curr_qid,
                                         question=curr_qae.question,
                                         answer=final_response,
@@ -292,7 +300,6 @@ class BenchmarkEvalRenderer:
                 else:
                     next_idx = p_list[0]
                     st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = next_idx
-                print("next idx to run: ", next_idx)
                 st.rerun()
             # with container_to_stream_response:
             #     temp_con =  st.container(border=True)
