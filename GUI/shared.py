@@ -25,20 +25,12 @@ def load_llm(_global_singleton):
     else:
         return load_llm_default(_global_singleton)
 
-"""
-def load_llm(_global_singleton):
-    if _global_singleton.llm_type=="LLAMA":
-        return load_llm_llama(_global_singleton.llm_path)
-    elif _global_singleton.llm_type=="Huggingface":
-        return load_llm_huggingface(_global_singleton.hug_llm_name, _global_singleton.hug_api_key)
-    elif _global_singleton.llm_type=="Openai":
-        return load_llm_openai(_global_singleton.opai_api_key)
-    else:
-        return load_llm_default()
-"""
 @st.cache_resource
 def load_llm_default(_global_singleton):
     # print("loading default llm")
+    print("girdi ve simdi cache emptpyliyoruz, load_llm_default")
+    torch.cuda.empty_cache()
+    print("silindi cache")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:
         llm_loader = LLMModelLoader(streaming=False, temperature=0)#"llama2-13b-chat", streaming=False, temperature=0)
         llm_model = "llama 2 13b chat"
@@ -47,6 +39,9 @@ def load_llm_default(_global_singleton):
 @st.cache_resource
 def load_llm_llama(llm_path):
     # print("loading llama llm")
+    print("girdi ve simdi cache emptpyliyoruz, load_llm_llama")
+    torch.cuda.empty_cache()
+    print("silindi cache")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:
         llm_loader = LLMModelLoader(llm_path, streaming=False, temperature=0)
         #print(3)
@@ -55,7 +50,11 @@ def load_llm_llama(llm_path):
 @st.cache_resource
 #not checking wheter huggingface_model_name and huggingface_api_key are valid or not
 def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
+    print("girdi ve simdi cache emptpyliyoruz, load_llm_huggingface")
+    torch.cuda.empty_cache()
+    print("silindi cache")
     # print("loading huggingface llm: ", huggingface_model_name)
+    
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
         #token = "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"
         token = huggingface_api_key
@@ -94,6 +93,9 @@ def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
 
 @st.cache_resource
 def load_llm_openai(opai_llm_name, openai_api_key):
+    print("girdi ve simdi cache emptpyliyoruz, load_llm_openai")
+    torch.cuda.empty_cache()
+    print("silindi cache")
     # print("open ai llm loadun icine girdi")
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
         model = ChatOpenAI(model_name = opai_llm_name, openai_api_key = openai_api_key)
@@ -188,9 +190,16 @@ def load_global_singleton():
     return global_singleton
 
 
-def link_clicked(session, session_manager):
+def link_clicked(session, session_manager, is_chat_session=True):
+    print("setting active session to ", session.name)
     if session_manager.active_session != None:
         session_manager.active_session.deinitialize()
+    if is_chat_session:
+        if not "switch_page_chat" in st.session_state:
+            st.session_state["switch_page_chat"] = True
+    else:
+        if not "switch_page_bench" in st.session_state:
+            st.session_state["switch_page_bench"] = True 
     session_manager.active_session = session
 
 def navbar(global_singleton):
@@ -198,9 +207,7 @@ def navbar(global_singleton):
     with st.sidebar:
         st.subheader("Sessions", divider="grey")
         if global_singleton.chat_session_manager and global_singleton.chat_session_manager.sessions:
-            switch_page = False
             for session_name, session in global_singleton.chat_session_manager.sessions.items():
-                switch_page = False
                 if session == global_singleton.chat_session_manager.active_session:
                      with stylable_container(
                         key="active_session",
@@ -211,19 +218,19 @@ def navbar(global_singleton):
                                 }
                                 """,
                         ):
-                         switch_page = st.button(session_name, 
-                                            key=session_name, 
-                                            on_click=link_clicked, 
-                                            args=[session, global_singleton.chat_session_manager], 
+                        st.button(session_name, 
+                                            key=f"{session_name}_1",
                                             use_container_width=True)
                          
                 else:
-                    switch_page = st.button(session_name, 
-                                            key=session_name, 
+                    st.button(session_name, 
+                                            key=f"{session_name}_2", 
                                             on_click=link_clicked, 
                                             args=[session, global_singleton.chat_session_manager], 
                                             use_container_width=True)
-            if switch_page:
+            if "switch_page_chat" in st.session_state and st.session_state["switch_page_chat"]:
+                st.session_state["compare_active"] = False
+                st.session_state["switch_page_chat"] = False
                 if global_singleton.benchmark_session_manager.active_session:
                     global_singleton.benchmark_session_manager.active_session.deinitialize()
                 st.switch_page("pages/chat_page.py")
@@ -238,14 +245,15 @@ def navbar(global_singleton):
                     global_singleton.benchmark_session_manager.active_session.deinitialize()
                     global_singleton.benchmark_session_manager.active_session = None
             st.switch_page("pages/session_page.py")
+
+        """ Benchmarks """
         st.subheader("Benchmarks", divider="grey")
         if global_singleton.benchmark_session_manager and global_singleton.benchmark_session_manager.sessions:
             # benchmarks
             for session_name, session in global_singleton.benchmark_session_manager.sessions.items():
-                switch_page = False
                 if session == global_singleton.benchmark_session_manager.active_session:
                      with stylable_container(
-                        key="active_session",
+                        key="active_b_session",
                             css_styles="""
                                 button {
                                     background-color: white;
@@ -253,19 +261,19 @@ def navbar(global_singleton):
                                 }
                                 """,
                         ):
-                        switch_page_b = st.button(session_name, 
-                                            key=f"b_{session_name}", 
-                                            on_click=link_clicked, 
-                                            args=[session, global_singleton.benchmark_session_manager], 
+                        st.button(session_name, 
+                                            key=f"b_{session_name}_1", 
                                             use_container_width=True)
                          
                 else:
-                    switch_page_b = st.button(session_name, 
-                                            key=f"b_{session_name}", 
+                    st.button(session_name, 
+                                            key=f"b_{session_name}_2", 
                                             on_click=link_clicked, 
-                                            args=[session, global_singleton.benchmark_session_manager], 
+                                            args=[session, global_singleton.benchmark_session_manager, False], 
                                             use_container_width=True)
-            if switch_page_b:
+            if "switch_page_bench" in st.session_state and st.session_state["switch_page_bench"]:
+                st.session_state["compare_active"] = False
+                st.session_state["switch_page_bench"] = False
                 if global_singleton.chat_session_manager.active_session:
                     global_singleton.chat_session_manager.active_session.deinitialize()
                     global_singleton.chat_session_manager.active_session = None
@@ -280,12 +288,42 @@ def navbar(global_singleton):
             st.markdown("No benchmarks")
         new_benchmark = st.button("＋ New Benchmark", use_container_width=True, key="b_create")
         if new_benchmark:
+            st.session_state["compare_active"] = False
             if global_singleton.chat_session_manager.active_session:
                     global_singleton.chat_session_manager.active_session.deinitialize()
                     global_singleton.chat_session_manager.active_session = None
+            if global_singleton.benchmark_session_manager.active_session:
+                    global_singleton.benchmark_session_manager.active_session.deinitialize()
+                    global_singleton.benchmark_session_manager.active_session = None
             st.switch_page("pages/benchmark_page.py")
+        
+        """ Compare benchmarks """
+        if not "compare_active" in st.session_state:
+            st.session_state["compare_active"] = False
+        if st.session_state["compare_active"]:
+            with stylable_container(
+                        key="active_b_compare",
+                            css_styles="""
+                                button {
+                                    background-color: white;
+                                    color: black;
+                                }
+                                """,
+                        ):
+                st.button("Compare Benchmarks", "b_compare1", use_container_width=True)
+        else:
+            compare_benchmarks = st.button("Compare Benchmarks", "b_compare", use_container_width=True)
+            if compare_benchmarks:
+                st.session_state["compare_active"] = True
+                if global_singleton.chat_session_manager.active_session:
+                    global_singleton.chat_session_manager.active_session.deinitialize()
+                    global_singleton.chat_session_manager.active_session = None
+                if global_singleton.benchmark_session_manager.active_session:
+                    global_singleton.benchmark_session_manager.active_session.deinitialize()
+                    global_singleton.benchmark_session_manager.active_session = None
+                st.switch_page("pages/benchmark_compare_page.py")
 
-        # choose llm
+        """ choose llm """
         st.header("LLMs", divider="grey")
         st.markdown(f"LLM: {global_singleton.llm_model}")
         st.markdown(f"Embeddings: {global_singleton.embeddings_model}")

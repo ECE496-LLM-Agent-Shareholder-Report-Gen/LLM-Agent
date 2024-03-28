@@ -28,7 +28,6 @@ class Session:
                  k_i=None,
                  *args, **kwargs):
 
-        print("init session")
         self.reports = reports
         self.llm_chain = llm_chain
         self.retrieval_strategy = retrieval_strategy
@@ -327,9 +326,10 @@ class BenchmarkSession(Session):
 
     def update_qae(self, id, question, answer, expected=None, similarity_score=None, response_time=None):
         qae = QAE(question, answer, expected=expected, similarity_score=similarity_score, response_time=response_time)
-        self.question_answer_expected[id] = qae
+        self.question_answer_expected[str(id)] = qae
 
     def set_qae(self, question_answer_expected={}):
+        print(question_answer_expected)
         self.question_answer_expected = question_answer_expected
 
     def set_qae_from_dict(self, qae_dict):

@@ -210,7 +210,7 @@ class BenchmarkRenderer:
             answer = qe[3].strip()
             if not answer:
                 answer = None
-            qae_dict[idx+1] = QAE(question=question, expected=expected, answer=answer, similarity_score=score)
+            qae_dict[str(idx+1)] = QAE(question=question, expected=expected, answer=answer, similarity_score=score)
         return qae_dict
 
 
@@ -268,7 +268,7 @@ class BenchmarkRenderer:
             if submittable:
                 name = st.session_state["b_name"].strip()
                 for ses in self.global_singleton.benchmark_session_manager.sessions:
-                    if ses.name == name:
+                    if ses == name:
                         st.error(f"The benchmark name '{name}' is already being used. Please try another name.")
                         submittable = False
 

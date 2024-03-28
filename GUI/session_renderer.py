@@ -53,6 +53,9 @@ class SessionRenderer:
     def render_header_benchmark(self):
         st.title('Complete Benchmark Creation')
         st.markdown('<b>Select the reports, retrieval strategy, and LLM chain</b>', unsafe_allow_html=True)
+        back_to_qae = st.button("Back", key="b_back")
+        if back_to_qae:
+            st.switch_page("pages/benchmark_page.py")
 
     def render_header(self):
         st.title('Chat with Shareholder Reports')
@@ -348,6 +351,15 @@ class SessionRenderer:
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
+            name = st.session_state["name"].strip()
+            submittable = True
+            if not name:
+                submittable = False
+            if submittable:
+                for ses in self.global_singleton.chat_session_manager.sessions:
+                    if ses == name:
+                        st.error(f"The session name '{name}' is already being used. Please try another name.")
+                        submittable = False
             try:
                 session = ChatSession(name=st.session_state.name,
                                     #embeddings_model_name=self.global_singleton.embeddings_model_name,
@@ -389,6 +401,7 @@ class SessionRenderer:
                 del st.session_state["reports"]
                 del st.session_state["b_name"]
                 del st.session_state["question_expected_final"]
+                del st.session_state["question_expected"]
                 del st.session_state["memory_enabled"]
                 del st.session_state["llm_chain"]
                 del st.session_state["retrieval_strategy"]

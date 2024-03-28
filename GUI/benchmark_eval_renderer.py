@@ -76,13 +76,13 @@ class BenchmarkEvalRenderer:
                         init_soft = st.button("Load", help="Load from existing vector stores (if they exist), and create embeddings for the files that don't have any vector store")
                         if init_soft:
                             with st.spinner("Loading session..."):
-                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings)
+                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder)
                                 st.rerun()
                 with col2:
                     init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_1")
                     if init_hard:
                             with st.spinner("Re-Initializing session..."):
-                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, load=False)
+                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, load=False)
                                 st.rerun()
             else:
                 init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_2")
@@ -227,7 +227,7 @@ class BenchmarkEvalRenderer:
                         st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
                         st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "full"
                         full_list, comp_idxs = self.compute_full_eval_qae(self.session.question_answer_expected)
-                        if len(p_list) == 0:
+                        if len(full_list) == 0:
                             st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
                         else:
                             st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = full_list[0]
@@ -247,8 +247,8 @@ class BenchmarkEvalRenderer:
 
         curr_qid = 0
 
+        curr_processing_qae =  st.session_state[f"benchmark_{self.session.name}"]["curr_idx"]
         for idx, (qid, qae) in enumerate(self.session.question_answer_expected.items()):
-            curr_processing_qae =  st.session_state[f"benchmark_{self.session.name}"]["curr_idx"]
             with empty_containers[idx]: # running
                 with containers[idx]:
                     if qid == curr_processing_qae and status == "running":
