@@ -219,11 +219,11 @@ class FileManager:
 
     def index_exists(self, company, year, report_type, quarter=None):
         if quarter != None:
-            if self.dir_dict[company][year][report_type][quarter]["index_loc"] != None:
+            if "index_loc" in self.dir_dict[company][year][report_type][quarter]:
                 # print("file_manager - index_exists: true")
                 return True
         else:
-            if self.dir_dict[company][year][report_type]["index_loc"] != None:
+            if "index_loc" in self.dir_dict[company][year][report_type]:
                 # print("file_manager - index_exists: true")
                 return True
         # print("file_manager - index_exists: false")

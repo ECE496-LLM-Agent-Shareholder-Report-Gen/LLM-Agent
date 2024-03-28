@@ -53,6 +53,6 @@ class BenchmarkCompareRenderer:
             df = pd.DataFrame(data_raw).T
             df.columns = column_names
             actual_columns = [n for n in column_names if n != "Q&A"]
-            st.line_chart(data=df, x="Q&A", y=actual_columns )
+            st.bar_chart(data=df, x="Q&A", y=actual_columns )
         else:
             st.markdown("No data to display")

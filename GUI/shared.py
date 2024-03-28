@@ -25,7 +25,7 @@ def load_llm(_global_singleton):
     else:
         return load_llm_default(_global_singleton)
 
-@st.cache_resource
+#@st.cache_resource
 def load_llm_default(_global_singleton):
     # print("loading default llm")
     print("girdi ve simdi cache emptpyliyoruz, load_llm_default")
@@ -36,7 +36,7 @@ def load_llm_default(_global_singleton):
         llm_model = "llama 2 13b chat"
         return llm_loader.load_ollama(model="llama2-13b-chat"), llm_model
 
-@st.cache_resource
+#@st.cache_resource
 def load_llm_llama(llm_path):
     # print("loading llama llm")
     print("girdi ve simdi cache emptpyliyoruz, load_llm_llama")
@@ -47,7 +47,7 @@ def load_llm_llama(llm_path):
         #print(3)
         return llm_loader.load(), llm_path
 
-@st.cache_resource
+#@st.cache_resource
 #not checking wheter huggingface_model_name and huggingface_api_key are valid or not
 def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
     print("girdi ve simdi cache emptpyliyoruz, load_llm_huggingface")
@@ -91,7 +91,7 @@ def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
                                                      token = token)"""
         #model = AutoModelForCausalLM.from_pretrained(huggingface_model_name, token = "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", cache_dir = "/groups/acmogrp/Large-Language-Model-Agent/app/cache_dir")
 
-@st.cache_resource
+#@st.cache_resource
 def load_llm_openai(opai_llm_name, openai_api_key):
     print("girdi ve simdi cache emptpyliyoruz, load_llm_openai")
     torch.cuda.empty_cache()
