@@ -36,7 +36,7 @@ def load_llm(_global_singleton):
     else:
         return load_llm_default()
 """
-#@st.cache_resource
+@st.cache_resource
 def load_llm_default(_global_singleton):
     print("loading default llm")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:
@@ -44,7 +44,7 @@ def load_llm_default(_global_singleton):
         llm_model = "llama 2 13b chat"
         return llm_loader.load_ollama(model="llama2-13b-chat"), llm_model
 
-#@st.cache_resource
+@st.cache_resource
 def load_llm_llama(llm_path):
     print("loading llama llm")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:

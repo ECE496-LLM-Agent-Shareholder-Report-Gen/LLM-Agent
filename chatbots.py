@@ -66,8 +66,6 @@ class Chatbot(ABC):
         duration_s = duration/1e9
         return response, score, duration_s
 
-
-
     def update_memory(self, question, answer):
         # remove any curly braces from question and answer
         question = question.replace("{", "").replace("}","")

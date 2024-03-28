@@ -54,8 +54,8 @@ class Session:
         if not self.llm_chain or not self.llm_chain in self.valid_llm_chains:
             raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", self.valid_llm_chains)
 
-        if len(self.reports) == 0:
-            raise Exception("No reports added")
+        # if len(self.reports) == 0:
+        #     raise Exception("No reports added")
 
         # get vector stores from files
         self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports, load=load)
@@ -188,6 +188,7 @@ class Session:
             return None
 
     def populate_vectorstore(self, file_manager, index_generator, embeddings, reports, load=True):
+        self.vectorstores = {}
         for report in reports:
             if load:
                 vectorstore = self.load_vectorstore(file_manager, index_generator, embeddings, report)
@@ -349,6 +350,18 @@ class BenchmarkSession(Session):
             temp_qae_dict[id] = qae.encode()
         ses_dict["question_answer_expected"] = temp_qae_dict
         return ses_dict
+    
+    def qae_to_dict_list(self):
+        qae_list = []
+        for id, qae in self.question_answer_expected.items():
+            qae_list.append({
+                "question": qae.question,
+                "expected": qae.expected,
+                "llm_answer": qae.answer,
+                "similarity_score": qae.similarity_score,
+            })
+        return qae_list
+
 
 
 

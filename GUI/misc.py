@@ -2,6 +2,7 @@ import streamlit as st
 
 import os
 
+""" write stream from chatbot """
 def write_stream(stream):
     result = ""
     container = st.empty()
@@ -10,15 +11,10 @@ def write_stream(stream):
         container.write(result, unsafe_allow_html=True)
     return result
 
-def render_session_info(session, left_col_size = 0.2, right_col_size = 0.8):
-    print(session)
+
+""" render info of the session """
+def render_session_info(session, left_col_size = 0.3, right_col_size = 0.7):
     with st.popover("View Session Info"):
-        with st.container():
-            col1, col2 = st.columns([left_col_size, right_col_size])
-            with col1:
-                st.markdown("<b>Embeddings Model</b>: ", unsafe_allow_html=True)
-            with col2: 
-                st.markdown(session.embeddings_model_name)
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
@@ -31,12 +27,13 @@ def render_session_info(session, left_col_size = 0.2, right_col_size = 0.8):
                 st.markdown("<b>k</b>: ", unsafe_allow_html=True)
             with col2: 
                 st.markdown(session.k)
-        with st.container():
-            col1, col2 = st.columns([left_col_size, right_col_size])
-            with col1:
-                st.markdown("<b>k_i</b>: ", unsafe_allow_html=True)
-            with col2: 
-                st.markdown(session.k_i)
+        if session.k_i:
+            with st.container():
+                col1, col2 = st.columns([left_col_size, right_col_size])
+                with col1:
+                    st.markdown("<b>k_i</b>: ", unsafe_allow_html=True)
+                with col2: 
+                    st.markdown(session.k_i)
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
@@ -70,3 +67,19 @@ def render_session_info(session, left_col_size = 0.2, right_col_size = 0.8):
                         if  existing_file.quarter:
                             with quarter_col:
                                 st.markdown(f"Quarter: {existing_file.quarter}")
+
+
+""" check if session is still valid """
+def check_session_valid(reports, file_manager):
+    status = True
+    file_manager.load()
+    missing_reports = []
+    for report in reports:
+        file_path = file_manager.get_file_path(report.company, report.year, report.report_type, report.quarter)
+        if file_path == None:
+            status =  False
+            missing_report = f"{report.company}, {report.year}, {report.report_type}"
+            if report.quarter:
+                missing_report += f", {report.quarter}"
+            break
+    return status, missing_reports
