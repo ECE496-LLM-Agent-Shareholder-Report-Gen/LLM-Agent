@@ -8,7 +8,6 @@ if not "global_singleton" in st.session_state:
 else: 
     global_singleton = st.session_state["global_singleton"]
 
-print("global:", global_singleton.__dict__)
 navbar(global_singleton)
 
 session = SessionRenderer(global_singleton)

@@ -80,7 +80,7 @@ class GlobalSingleton:
             cls._instance.embedding_type = None
             cls._instance.opai_embedding_name = None
             cls._instance.hug_embedding_name = None
-        print(cls._instance, cls._instance.llm)
+        # print(cls._instance, cls._instance.llm)
         return cls._instance
         
     def load_index_generator(self,index_name=None):

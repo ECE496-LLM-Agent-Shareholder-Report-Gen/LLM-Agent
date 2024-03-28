@@ -14,10 +14,8 @@ class ChatRenderer:
         self.global_singleton = global_singleton
         if global_singleton.chat_session_manager and global_singleton.chat_session_manager.active_session:
             self.session = global_singleton.chat_session_manager.active_session
-            print("Chatting with active session: ", self.session)
 
         else:
-            print("no active session!")
             st.switch_page("streamlit_app.py")
 
     def render(self):

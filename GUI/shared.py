@@ -38,7 +38,7 @@ def load_llm(_global_singleton):
 """
 @st.cache_resource
 def load_llm_default(_global_singleton):
-    print("loading default llm")
+    # print("loading default llm")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:
         llm_loader = LLMModelLoader(streaming=False, temperature=0)#"llama2-13b-chat", streaming=False, temperature=0)
         llm_model = "llama 2 13b chat"
@@ -46,7 +46,7 @@ def load_llm_default(_global_singleton):
 
 @st.cache_resource
 def load_llm_llama(llm_path):
-    print("loading llama llm")
+    # print("loading llama llm")
     with st.spinner(text="Loading and Llama 2 model – hang tight! This should take 1-2 minutes.") as spinner:
         llm_loader = LLMModelLoader(llm_path, streaming=False, temperature=0)
         #print(3)
@@ -55,7 +55,7 @@ def load_llm_llama(llm_path):
 @st.cache_resource
 #not checking wheter huggingface_model_name and huggingface_api_key are valid or not
 def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
-    print("loading huggingface llm: ", huggingface_model_name)
+    # print("loading huggingface llm: ", huggingface_model_name)
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
         #token = "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"
         token = huggingface_api_key
@@ -94,7 +94,7 @@ def load_llm_huggingface(huggingface_model_name, huggingface_api_key):
 
 @st.cache_resource
 def load_llm_openai(opai_llm_name, openai_api_key):
-    print("open ai llm loadun icine girdi")
+    # print("open ai llm loadun icine girdi")
     with st.spinner(text="Loading model from HuggingFace – hang tight! This should take 1-2 minutes.") as spinner:
         model = ChatOpenAI(model_name = opai_llm_name, openai_api_key = openai_api_key)
         #model = ChatOpenAI(model_name = "gpt-3.5-turbo", openai_api_key = "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")
@@ -139,7 +139,7 @@ def load_word_embedding(_global_singleton):
 #todo: openai embeddings (get input from st.selectbox and this select box has options as "text-embedding-ada-002","text-embedding-3-large","text-embedding-3-small") or just ada embedding model
 @st.cache_resource
 def load_word_embedder_openai(opai_embedding_name, openai_api_key):
-    print("loading openai embeddings")
+    # print("loading openai embeddings")
     with st.spinner(text="Loading and OpenAI Embeddings model – hang tight! This should take 1-2 minutes."):
         #embeddings = OpenAIEmbeddings(openai_api_key="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")
         embeddings = OpenAIEmbeddings(model_name = opai_embedding_name, openai_api_key=openai_api_key)
@@ -148,7 +148,7 @@ def load_word_embedder_openai(opai_embedding_name, openai_api_key):
 #todo: huggingface embeddings (locally downloaded, user chooses folder/file) or just show select options as what is in that path yada heryerden istedigin bi path secbilcegin file uploader
 @st.cache_resource
 def load_word_embedder_huggingface(model_name):
-    print("loading huggingface embeddings")
+    # print("loading huggingface embeddings")
     with st.spinner(text="Loading and HuggingFace Embeddings model – hang tight! This should take 1-2 minutes."):
         #model_kwargs = {'device': 'cuda'}
         encode_kwargs = {'normalize_embeddings': True}
@@ -161,7 +161,7 @@ def load_word_embedder_huggingface(model_name):
 
 @st.cache_resource
 def load_word_embedder_default():
-    print("loading default bge embeddings")
+    # print("loading default bge embeddings")
     with st.spinner(text="Loading and Embeddings model – hang tight! This should take 1-2 minutes."):
         embeddings_loader = EmbeddingsLoader()
         return embeddings_loader.load_bge(), embeddings_loader.model_name
@@ -169,7 +169,7 @@ def load_word_embedder_default():
 ##### cross encoder
 @st.cache_resource
 def load_cross_encoder():
-    print("loading cross encoder")
+    # print("loading cross encoder")
     with st.spinner(text="Loading and Cross Encoder model – hang tight! This should take 1-2 minutes."):
         ce_file_path = "/groups/acmogrp/Large-Language-Model-Agent/language_models/cross_encoder/BAAI_bge-reranker-large"
         cross_encoder_model = "BAAI/bge-reranker-large"

@@ -9,7 +9,6 @@ class BenchmarkEvalRenderer:
 
     def __init__(self, global_singleton):
         self.global_singleton = global_singleton
-        self.similarity_scores = []
         if global_singleton.benchmark_session_manager and global_singleton.benchmark_session_manager.active_session:
             self.session = global_singleton.benchmark_session_manager.active_session
 
@@ -22,6 +21,9 @@ class BenchmarkEvalRenderer:
 
     def render(self):
         self.render_header()
+        st.divider()
+        self.render_chart()
+        st.divider()
         self.render_question_expected()
 
     @st.cache_data
@@ -90,6 +92,16 @@ class BenchmarkEvalRenderer:
                     with st.spinner("Re-Initializing session..."):
                         self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, load=False)
                         st.rerun()
+
+    """ Render chart """
+    def render_chart(self):
+        similarity_scores = []
+        for idx, qae in self.session.question_answer_expected.items():
+            similarity_scores.append(qae.similarity_score)
+        
+
+        st.subheader("Similarity Scores", divider="grey")
+        st.line_chart(similarity_scores)
 
     """ Render a single QAE box, without the title """
     def render_qae_box(self, question=None, expected=None, answer=None, similarity_score=None, response_time=None, cutoff=70, col1_width=0.2, col2_witdh=0.8):
@@ -184,38 +196,43 @@ class BenchmarkEvalRenderer:
         st.subheader('Questions and Answers', divider='grey')
         if self.session.initialized and st.session_state[f"benchmark_{self.session.name}"]["status"] != "running":
             allowed_tests = st.session_state[f"benchmark_{self.session.name}"]["allowed_tests"]
-            if allowed_tests == "partial" or allowed_tests == "all":
-                partial_eval_test = st.button("Partial Evaluation", help="Evaluate any Q&As that do not already have a similarity score. Note that this ONLY computes the similarity score if possible. If the LLM Answer exists, then that will be used instead of answering the question again.")
-                if partial_eval_test:
-                    st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
-                    st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "partial"
-                    p_list, comp_idxs = self.compute_partial_eval_qae(self.session.question_answer_expected)
-                    if len(p_list) == 0:
-                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
-                    else:
-                        st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = p_list[0]
+            partial_col, full_col = st.columns(2)
+            with partial_col:
+                if allowed_tests == "partial" or allowed_tests == "all":
+                    partial_eval_test = st.button("Partial Evaluation", help="Evaluate any Q&As that do not already have a similarity score. Note that this ONLY computes the similarity score if possible. If the LLM Answer exists, then that will be used instead of answering the question again.")
+                    if partial_eval_test:
+                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
+                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "partial"
+                        p_list, comp_idxs = self.compute_partial_eval_qae(self.session.question_answer_expected)
+                        if len(p_list) == 0:
+                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
+                        else:
+                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = p_list[0]
 
-                    st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = p_list
-                    st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
-                    st.rerun()
-            if allowed_tests == "all":
-                full_eval_test = st.button("Complete Evaluation", help="Evaluate all Q&As. Running a complete evaluation will re-answer any questions with a similarity score.")
-                if full_eval_test:
-                    st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
-                    st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "full"
-                    full_list, comp_idxs = self.compute_full_eval_qae(self.session.question_answer_expected)
-                    if len(p_list) == 0:
-                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
-                    else:
-                        st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = full_list[0]
+                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = p_list
+                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
+                        st.rerun()
+            with full_col:
+                if allowed_tests == "all":
+                    full_eval_test = st.button("Complete Evaluation", help="Evaluate all Q&As. Running a complete evaluation will re-answer any questions with a similarity score.")
+                    if full_eval_test:
+                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
+                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "full"
+                        full_list, comp_idxs = self.compute_full_eval_qae(self.session.question_answer_expected)
+                        if len(p_list) == 0:
+                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
+                        else:
+                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = full_list[0]
 
-                    st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = full_list
-                    st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
-                    st.rerun()
+                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = full_list
+                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
+                        st.rerun()
 
         status = st.session_state[f"benchmark_{self.session.name}"]["status"]
         test_type = st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"]
         comp_idxs = st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"]
+        print("completed idxs: ", comp_idxs)
+        print("idxs to compute: ",  st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"])
         containers = [st.container(border=True) for x in range(len(self.session.question_answer_expected.items()))]
         empty_containers = [st.empty() for x in range(len(self.session.question_answer_expected.items()))]
 
@@ -246,10 +263,8 @@ class BenchmarkEvalRenderer:
                                         answer=qae.answer,
                                         similarity_score=qae.similarity_score,
                                         response_time=qae.response_time)
-                    self.similarity_scores.append(qae.similarity_score)
 
-        st.subheader("Similarity Scores")
-        st.line_chart(self.similarity_scores)
+       
 
         if container_to_stream_response:
             if test_type == "partial":
@@ -269,14 +284,15 @@ class BenchmarkEvalRenderer:
                 next_idx = st.session_state[f"benchmark_{self.session.name}"]["curr_idx"]
 
                 # what to do if this is a partial test
-                completed_idx = st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"].pop()
-                st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"].append(completed_idx)
+                st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"].remove(next_idx)
+                st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"].append(next_idx)
                 p_list = st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"]
                 if len(p_list) == 0:
                     st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
                 else:
                     next_idx = p_list[0]
                     st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = next_idx
+                print("next idx to run: ", next_idx)
                 st.rerun()
             # with container_to_stream_response:
             #     temp_con =  st.container(border=True)

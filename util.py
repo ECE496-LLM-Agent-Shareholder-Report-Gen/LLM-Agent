@@ -129,7 +129,6 @@ class FileManager:
     # gets companies using predefined directory structure
     def load(self):
         self.dir_dict = self._create_dict(self.path)
-        print(self.dir_dict)
 
     def move_file(self, src_file, company_name, year, report_type, quarter=None):
         # Construct the new directory path
@@ -221,13 +220,13 @@ class FileManager:
     def index_exists(self, company, year, report_type, quarter=None):
         if quarter != None:
             if self.dir_dict[company][year][report_type][quarter]["index_loc"] != None:
-                print("file_manager - index_exists: true")
+                # print("file_manager - index_exists: true")
                 return True
         else:
             if self.dir_dict[company][year][report_type]["index_loc"] != None:
-                print("file_manager - index_exists: true")
+                # print("file_manager - index_exists: true")
                 return True
-        print("file_manager - index_exists: false")
+        # print("file_manager - index_exists: false")
         return False
 
     # create embeddings for all companies, years in directory structure
@@ -247,7 +246,8 @@ class FileManager:
                         index_path = os.path.join(directory, "index")
                         dirs_to_gen.append({"dir": directory, "index": index_path, "company": sp_company, "year": sp_year})
                     else:
-                        print("Invalid year.")
+                        # print("Invalid year.")
+                        pass
                 # else do for all years
                 else:
                     for year in comp.keys():
@@ -257,7 +257,8 @@ class FileManager:
                         
             
             else:
-                print("Invalid company ticker.")
+                # print("Invalid company ticker.")
+                pass
 
         else:
             for company in self.companies.keys():
@@ -268,7 +269,7 @@ class FileManager:
 
         # generate embeddings now
         for dir_index in dirs_to_gen:
-            print(f"Generating {dir_index['company']} {dir_index['year']} vector store...")
+            # print(f"Generating {dir_index['company']} {dir_index['year']} vector store...")
             vector_store = index_gen.generate_vector_store_pdf_dir(dir_index['dir'])
             index_gen.save_vector_store(vector_store, dir_index["index"])
 
@@ -290,7 +291,7 @@ class SessionManager:
     
     def load(self):
         ss_list = {}
-        print("loading sessions...")
+        # print("loading sessions...")
         self.sessions = {}
         try:
             with open(self.save_file, "r") as json_file:
@@ -300,7 +301,7 @@ class SessionManager:
                 self.sessions[name] = session
         except Exception as e:
             print(e)
-        print("done loading sessions: ", self.sessions)
+        # print("done loading sessions: ", self.sessions)
 
         self.initialized = True
 
