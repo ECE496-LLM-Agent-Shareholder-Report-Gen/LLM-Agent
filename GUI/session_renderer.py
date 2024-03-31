@@ -1,5 +1,6 @@
 from random import randint
 import streamlit as st
+from GUI.navbar import disable_active_session
 from session import QAE, BenchmarkSession, ChatSession, Report, Session
 
 import os
@@ -376,6 +377,7 @@ class SessionRenderer:
                 del st.session_state["retrieval_strategy"]
                 del st.session_state["k"]
                 del st.session_state["k_i"]
+                disable_active_session(self.global_singleton)
                 self.global_singleton.chat_session_manager.add_session(session)
                 self.global_singleton.chat_session_manager.set_active_session(session)
                 st.session_state["global_singleton"] = self.global_singleton
@@ -408,6 +410,7 @@ class SessionRenderer:
                 del st.session_state["k"]
                 del st.session_state["k_i"]
                 self.global_singleton.benchmark_session_manager.add_session(session)
+                disable_active_session(self.global_singleton)
                 self.global_singleton.benchmark_session_manager.set_active_session(session)
                 st.session_state["global_singleton"] = self.global_singleton
                 st.switch_page("pages/benchmark_eval_page.py")
