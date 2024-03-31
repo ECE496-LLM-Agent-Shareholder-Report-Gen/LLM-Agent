@@ -5,6 +5,9 @@ from global_singleton import GlobalSingleton
 from model_loader import LLMModelLoader
 from GUI.shared import load_global_singleton, load_llm
 from GUI.test_open_key import check_openai_api_key, check_hug_key
+import gc
+import torch
+
 
 #from GUI.shared import 
 #def not working might have messed up other parts, if you see this message and need me to fix it back message me on discord - mert
@@ -96,7 +99,9 @@ class LLMRenderer:
             self.llm_type = st.selectbox("Select your LLM type", options=["None", "LLAMA", "Huggingface", "Openai"])#, key="llm_type")
         with right_col:
             if self.llm_type == "LLAMA":
-                self.llm_path = st.selectbox("LLM", options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
+                model_list = get_model_list_ollama()
+                self.llm_path = st.selectbox("LLM", options=model_list)
+                #self.llm_path = st.selectbox("LLM", options=["llama2","mistral","gemma"])#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
                 st.session_state["global_singleton"].llm_path = self.llm_path
                 st.session_state["global_singleton"].llm_type = self.llm_type
                 self.global_singleton.llm_type = self.llm_type
@@ -148,6 +153,43 @@ class LLMRenderer:
                 else:
                     if check_openai_api_key(self.global_singleton.opai_api_key):
                         self.global_singleton.llm = load_llm(self.global_singleton)
+                        #reset_cache_cuda()
+                        st.session_state["global_singleton"].llm = self.global_singleton.llm
+                        #load_llm_button = False
+                    else:
+                        st.error("Invalid OpenAI API key")
+            #for huggingface
+            elif self.global_singleton.hug_llm_name is not None:
+                if self.global_singleton.hug_api_key is None:
+                    st.error("Please enter a Huggingface API key (not set by the user)")
+                else:
+                    if check_hug_key(self.global_singleton.hug_api_key):
+                        self.global_singleton.llm = load_llm(self.global_singleton)
+                        
+                        #reset_cache_cuda()
+                        st.session_state["global_singleton"].llm = self.global_singleton.llm
+                        #load_llm_button = False
+                    else:
+                        st.error("Invalid Huggingface API key")
+            else:
+                #reset_cache_cuda(self.global_singleton)
+                self.global_singleton.llm = load_llm(self.global_singleton)
+                print(self.global_singleton.llm)
+                #reset_cache_cuda()
+                st.session_state["global_singleton"].llm = self.global_singleton.llm
+                #load_llm_button = False
+"""
+    def render_load(self):
+        load_llm_button = False
+        load_llm_button = st.button("Load LLM", use_container_width = True)
+        if load_llm_button:
+            #for openai
+            if self.global_singleton.opai_llm_name is not None:
+                if self.global_singleton.opai_api_key is None:
+                    st.error("Please enter an OpenAI API key (not set by the user)")
+                else:
+                    if check_openai_api_key(self.global_singleton.opai_api_key):
+                        self.global_singleton.llm = load_llm(self.global_singleton)
                         st.session_state["global_singleton"].llm = self.global_singleton.llm
                         #load_llm_button = False
                     else:
@@ -167,7 +209,7 @@ class LLMRenderer:
                 self.global_singleton.llm = load_llm(self.global_singleton)
                 st.session_state["global_singleton"].llm = self.global_singleton.llm
                 #load_llm_button = False
-
+"""
 """
     #@st.cache_resource
     def load_llm_llama(self):
@@ -232,3 +274,19 @@ class LLMRenderer:
             print("butona basildi global singleton.llm ici :////////", self.global_singleton.llm, self.global_singleton.hug_llm_name)
             print("iceri girmis render loadla loadladiktan sonra", self.global_singleton)
 """
+
+def reset_cache_cuda(_global_singleton):
+    _global_singleton.llm = None
+    del _global_singleton.llm
+    gc.collect()
+    torch.cuda.empty_cache()
+    gc.collect()
+    #torch.distributed.destroy_process_group()
+    print("deleted the old model")
+
+def get_model_list_ollama():
+    dir = "/groups/acmogrp/Large-Language-Model-Agent/language_models/ollama/manifests/registry.ollama.ai/library/"
+    model_list = []
+    for file in os.listdir(dir):
+        model_list.append(file)
+    return model_list

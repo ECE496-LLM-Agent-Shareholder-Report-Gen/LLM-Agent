@@ -303,7 +303,7 @@ class SessionRenderer:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=8)
+                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=2)
                 if strat['k_i_exists']:
                     with col2:
                         st.session_state.k_i = st.number_input("Initial number of documents to fetch (k_i)", min_value=0, step=1, value=100)

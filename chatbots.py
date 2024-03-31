@@ -9,7 +9,7 @@ from operator import itemgetter
 from abc import ABC, abstractmethod
 
 from subquery_generator import SubQueryGenerator
-from template_formatter import LlamaTemplateFormatter
+from template_formatter import LlamaTemplateFormatter, NoTemplateFormatter
 
 import streamlit as st
 import GUI.misc as Gmisc
@@ -24,7 +24,7 @@ from llm_agents.tools.retriever_simple import RetrieverTool
 
 class Chatbot(ABC):
 
-    def __init__(self, retriever_strategy, llm, template_formatter=LlamaTemplateFormatter(), memory_limit=3000, progressive_memory=True, memory_active=False):
+    def __init__(self, retriever_strategy, llm, template_formatter=NoTemplateFormatter(), memory_limit=3000, progressive_memory=True, memory_active=False):
         self.retriever_strategy = retriever_strategy
         self.llm = llm
         self.template = None
