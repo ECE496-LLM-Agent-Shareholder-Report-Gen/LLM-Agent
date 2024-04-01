@@ -1,9 +1,10 @@
 import json
 from random import randint
+from termios import TAB2
 import streamlit as st
+from streamlit_pdf_viewer import pdf_viewer
 from GUI.misc import check_session_valid, render_session_info
 from session import Report, Session
-
 import os
 
 """Everything pertaining to the sessions for the GUI.
@@ -21,7 +22,11 @@ class ChatRenderer:
 
     def render(self):
         self.render_header()
-        self.render_conversation()
+        tab1, tab2 = st.tabs(["Conversation", "PDFs"])
+        with tab1:
+            self.render_conversation()
+        with tab2:
+            self.render_pdf()
 
     def download_conversation_history(self):
         conv_history = [qa.encode() for qa in self.session.conversation_history]
@@ -32,7 +37,7 @@ class ChatRenderer:
         st.title(self.session.name)
         with st.empty():
             render_session_info(self.session)
-       
+
         self.download_conversation_history()
 
 
@@ -84,5 +89,19 @@ class ChatRenderer:
                 full_response = full_response
                 self.session.add_to_conversation(replay_q.question, full_response, replays+1)
                 st.rerun()
+
+    def render_pdf(self):
+        report = None
+        for existing_file in self.session.reports:
+            if existing_file.quarter:
+                name = f"{existing_file.company} {existing_file.year} {existing_file.quarter} {existing_file.report_type}"
+            else:
+                name = f"{existing_file.company} {existing_file.year} {existing_file.report_type}"
+
+            if st.button(name):
+                report = existing_file.file_path
+
+        if report != None:
+            pdf_viewer(report)
 
 
