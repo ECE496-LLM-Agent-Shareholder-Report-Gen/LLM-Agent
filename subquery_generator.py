@@ -170,7 +170,7 @@ class SubQueryGenerator:
         # in case the above parsing doesn't work...
         # create the matches ourselves (company, year, reportType, quarter, question)
         leftovers = []
-        if len(yearly_matches) == 0 or len(quarter_matches) == 0:
+        if len(yearly_matches) == 0 and len(quarter_matches) == 0:
             # check by checking each line if the report is there
             lines = unparsed_questions.split("\n")
             for line in lines:

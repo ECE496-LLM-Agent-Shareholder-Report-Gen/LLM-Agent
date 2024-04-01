@@ -42,18 +42,21 @@ class BenchmarkEvalRenderer:
         csv_data =self.convert_dict_to_csv(qae_list)
         csv_download = st.download_button("Export results to CSV", data=csv_data, file_name=f"{self.session.name}.csv", key="download-vsc", mime='text/csv', help="Export evaluation results to CSV file format", disabled=st.session_state[f"benchmark_{self.session.name}"]["status"] == "running")
 
+    """ load vector stores and session """
+    def load_session(self):
+        if not self.session.initialized:
+            with st.spinner("Loading session..."):
+                isllama = "llama" in self.global_singleton.llm_model.lower()
+                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
 
     """ render header of benchmark  """
     def render_header(self):
         st.title(self.session.name)
         qae_list = self.get_qae_list()
 
-        coljson, colcsv = st.columns(2)
-        with coljson:
-            self.render_json_export(qae_list)
-        with colcsv:
-            self.render_csv_export(qae_list)
-
+        with st.empty():
+            render_session_info(self.session)
+        
         status, missing_reports = check_session_valid(self.session.reports, file_manager=self.global_singleton.file_manager)
         ce_exists  = True
         if self.global_singleton.cross_encoder == None:
@@ -65,31 +68,61 @@ class BenchmarkEvalRenderer:
         if not status and ce_exists:
             st.warning(f"The current benchmark is missing the following reports: {'; '.join(missing_reports)}. You will not be able to answer the questions using an LLM. However, you can still score the expected answers against the LLM answers (if they exist).") 
             st.session_state[f"benchmark_{self.session.name}"]["allowed_tests"] = "partial"
+        st.divider()
+        st.markdown("<b>Export your results either to a CSV or JSON file</b>", unsafe_allow_html=True)
 
-        with st.empty():
-            render_session_info(self.session)
+        coljson, colcsv, _ = st.columns([0.3, 0.3, 0.4])
+        with coljson:
+            self.render_json_export(qae_list)
+        with colcsv:
+            self.render_csv_export(qae_list)
+
+        
         if status and ce_exists:
             st.session_state[f"benchmark_{self.session.name}"]["allowed_tests"] = "all"
-            col1, col2, col3 = st.columns([0.1, 0.2, 0.7])
-            if not self.session.initialized:
-                with col1:
-                        init_soft = st.button("Load", help="Load from existing vector stores (if they exist), and create embeddings for the files that don't have any vector store")
-                        if init_soft:
-                            with st.spinner("Loading session..."):
-                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder)
-                                st.rerun()
-                with col2:
-                    init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_1")
-                    if init_hard:
-                            with st.spinner("Re-Initializing session..."):
-                                self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, load=False)
-                                st.rerun()
-            else:
-                init_hard = st.button("Re-Initialize", help="Reload all vector stores, including those that already exist", key="hard_init_2")
-                if init_hard:
-                    with st.spinner("Re-Initializing session..."):
-                        self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, load=False)
+            
+
+        if st.session_state[f"benchmark_{self.session.name}"]["status"] != "running":
+            st.markdown("<b>Initialize the session and benchmark the LLM</b>", unsafe_allow_html=True)
+            allowed_tests = st.session_state[f"benchmark_{self.session.name}"]["allowed_tests"]
+            partial_col, full_col, _ = st.columns([0.3, 0.3, 0.4])
+            with partial_col:
+                if allowed_tests == "partial" or allowed_tests == "all":
+                    partial_eval_test = st.button("Basic Evaluation", help="Evaluate any Q&As that do not already have a similarity score. Note that this ONLY computes the similarity score if possible. If the LLM Answer exists, then that will be used instead of answering the question again.")
+                    if partial_eval_test:
+                        self.load_session()
+                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
+                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "partial"
+                        p_list, comp_idxs = self.compute_partial_eval_qae(self.session.question_answer_expected)
+                        if len(p_list) == 0:
+                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
+                        else:
+                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = p_list[0]
+
+                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = p_list
+                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
                         st.rerun()
+            with full_col:
+                if allowed_tests == "all":
+                    full_eval_test = st.button("Complete Evaluation", help="Evaluate all Q&As. Running a complete evaluation will re-answer any questions with a similarity score.")
+                    if full_eval_test:
+                        self.load_session()
+                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
+                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "full"
+                        full_list, comp_idxs = self.compute_full_eval_qae(self.session.question_answer_expected)
+                        if len(full_list) == 0:
+                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
+                        else:
+                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = full_list[0]
+
+                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = full_list
+                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
+                        st.rerun()
+        else:
+            max_len = len(self.session.question_answer_expected)
+            curr_len = len(st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"])
+            status = round(curr_len/max_len * 100)
+            my_bar = st.progress(status, text="Please wait while the benchmark is complete")
 
     """ Render chart """
     def render_chart(self):
@@ -202,39 +235,7 @@ class BenchmarkEvalRenderer:
     """ renders the questions and answers """
     def render_question_expected(self):
         st.subheader('Questions and Answers', divider='grey')
-        if self.session.initialized and st.session_state[f"benchmark_{self.session.name}"]["status"] != "running":
-            allowed_tests = st.session_state[f"benchmark_{self.session.name}"]["allowed_tests"]
-            partial_col, full_col = st.columns(2)
-            with partial_col:
-                if allowed_tests == "partial" or allowed_tests == "all":
-                    partial_eval_test = st.button("Partial Evaluation", help="Evaluate any Q&As that do not already have a similarity score. Note that this ONLY computes the similarity score if possible. If the LLM Answer exists, then that will be used instead of answering the question again.")
-                    if partial_eval_test:
-                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
-                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "partial"
-                        p_list, comp_idxs = self.compute_partial_eval_qae(self.session.question_answer_expected)
-                        if len(p_list) == 0:
-                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
-                        else:
-                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = p_list[0]
-
-                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = p_list
-                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
-                        st.rerun()
-            with full_col:
-                if allowed_tests == "all":
-                    full_eval_test = st.button("Complete Evaluation", help="Evaluate all Q&As. Running a complete evaluation will re-answer any questions with a similarity score.")
-                    if full_eval_test:
-                        st.session_state[f"benchmark_{self.session.name}"]["status"] = "running"
-                        st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"] = "full"
-                        full_list, comp_idxs = self.compute_full_eval_qae(self.session.question_answer_expected)
-                        if len(full_list) == 0:
-                            st.session_state[f"benchmark_{self.session.name}"]["status"] = "complete"
-                        else:
-                            st.session_state[f"benchmark_{self.session.name}"]["curr_idx"] = full_list[0]
-
-                        st.session_state[f"benchmark_{self.session.name}"]["idxs_to_compute"] = full_list
-                        st.session_state[f"benchmark_{self.session.name}"]["completed_idxs"] = comp_idxs
-                        st.rerun()
+        
 
         status = st.session_state[f"benchmark_{self.session.name}"]["status"]
         test_type = st.session_state[f"benchmark_{self.session.name}"]["eval_test_type"]

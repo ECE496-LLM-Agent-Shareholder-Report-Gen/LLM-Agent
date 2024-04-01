@@ -36,34 +36,24 @@ def del_session(session, global_singleton, is_chat_session=True):
         global_singleton.benchmark_session_manager.save()
 
 
-
 """ do chat sessions """
 def do_chat_sessions(global_singleton):
     st.subheader("Sessions", divider="grey")
     if global_singleton.chat_session_manager and global_singleton.chat_session_manager.sessions:
         for session_name, session in global_singleton.chat_session_manager.sessions.items():
             if session == global_singleton.chat_session_manager.active_session:
-                col_but, col_del = st.columns([0.8, 0.2])
-                with col_but:
-                    with stylable_container(
-                        key="active_session",
-                            css_styles="""
-                                button {
-                                    background-color: white;
-                                    color: black;
-                                }
-                                """,
-                        ):
-                        st.button(session_name, 
-                                        key=f"{session_name}_1", 
-                                        use_container_width=True)
-                with col_del:
-                    del_pressed = st.button(":x:", key=f"{session_name}_1_del", on_click=del_session, args=[session, global_singleton, True])
-                    if del_pressed:
-                        disable_active_session(global_singleton)
-                        st.session_state["new_chat_session"] = True
-                        st.switch_page("pages/session_page.py")
-                        
+                with stylable_container(
+                    key="active_session",
+                        css_styles="""
+                            button {
+                                background-color: white;
+                                color: black;
+                            }
+                            """,
+                    ):
+                    st.button(session_name, 
+                                    key=f"{session_name}_1", 
+                                    use_container_width=True)
             else:
                 col_but, col_del = st.columns([0.8, 0.2])
                 with col_but:
@@ -73,9 +63,8 @@ def do_chat_sessions(global_singleton):
                                     args=[session, global_singleton], 
                                     use_container_width=True)
                 with col_del:
-                    del_pressed = st.button(":x:", key=f"{session_name}_2_del", on_click=del_session, args=[session, global_singleton, True])
-                    if del_pressed:
-                        st.rerun()
+                   st.button(":x:", key=f"{session_name}_2_del", on_click=del_session, args=[session, global_singleton, True])
+      
 
         if "switch_page_chat" in st.session_state and st.session_state["switch_page_chat"]:
             st.session_state["switch_page_chat"] = False
@@ -114,27 +103,18 @@ def do_benchmarks(global_singleton):
         # benchmarks
         for session_name, session in global_singleton.benchmark_session_manager.sessions.items():
             if session == global_singleton.benchmark_session_manager.active_session:
-                col_but, col_del = st.columns([0.8, 0.2])
-                with col_but:
-                    with stylable_container(
-                        key="active_b_session",
-                            css_styles="""
-                                button {
-                                    background-color: white;
-                                    color: black;
-                                }
-                                """,
-                        ):
-                        st.button(session_name, 
-                                        key=f"b_{session_name}_1", 
-                                        use_container_width=True)
-                with col_del:
-                    del_pressed = st.button(":x:", key=f"b_{session_name}_1_del", on_click=del_session, args=[session, global_singleton, False])
-                    if del_pressed:
-                        disable_active_session(global_singleton)
-                        st.session_state["new_benchmark_session"] = True
-                        st.switch_page("pages/benchmark_page.py")
-                        
+                with stylable_container(
+                    key="active_b_session",
+                        css_styles="""
+                            button {
+                                background-color: white;
+                                color: black;
+                            }
+                            """,
+                    ):
+                    st.button(session_name, 
+                                    key=f"b_{session_name}_1", 
+                                    use_container_width=True)
             else:
                 
                 col_but, col_del = st.columns([0.8, 0.2])
@@ -145,9 +125,9 @@ def do_benchmarks(global_singleton):
                                         args=[session, global_singleton, False], 
                                         use_container_width=True)
                 with col_del:
-                    del_pressed = st.button(":x:", key=f"b_{session_name}_2_del", on_click=del_session, args=[session, global_singleton, False])
-                    if del_pressed:
-                        st.rerun()
+                    st.button(":x:", key=f"b_{session_name}_2_del", on_click=del_session, args=[session, global_singleton, False])
+        
+
         if "switch_page_bench" in st.session_state and st.session_state["switch_page_bench"]:
             st.session_state["switch_page_bench"] = False
             st.switch_page("pages/benchmark_eval_page.py")

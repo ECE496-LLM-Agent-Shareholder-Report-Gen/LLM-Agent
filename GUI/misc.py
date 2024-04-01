@@ -54,19 +54,20 @@ def render_session_info(session, left_col_size = 0.3, right_col_size = 0.7):
                 for existing_file in session.reports:
                     container = st.container(border=True)
                     with container:
-                        loc_col, ticker_col, report_type_col, year_col, quarter_col = st.columns(5)
-                        with loc_col:
-                            file_name = os.path.basename(existing_file.file_path)
-                            st.markdown(f"<b>{file_name}</b>", unsafe_allow_html=True)
+                        if existing_file.quarter:
+                            ticker_col, report_type_col, year_col, quarter_col = st.columns(4)
+                        else:
+                            ticker_col, report_type_col, year_col = st.columns(3)
+
                         with ticker_col:
-                            st.markdown(f"Company: {existing_file.company}")
+                            st.markdown(f"{existing_file.company}")
                         with report_type_col:
-                            st.markdown(f"Report Type: {existing_file.report_type}", unsafe_allow_html=True)
+                            st.markdown(f"{existing_file.report_type}", unsafe_allow_html=True)
                         with year_col:
-                            st.markdown(f"Year: {existing_file.year}")
+                            st.markdown(f"{existing_file.year}")
                         if  existing_file.quarter:
                             with quarter_col:
-                                st.markdown(f"Quarter: {existing_file.quarter}")
+                                st.markdown(f"{existing_file.quarter}")
 
 
 """ check if session is still valid """

@@ -17,7 +17,7 @@ class BenchmarkRenderer:
     def __init__(self, global_singleton):
         self.global_singleton = global_singleton
         if 'question_expected' not in st.session_state:
-            st.session_state['question_expected'] = [["", "", "", ""]]
+            st.session_state['question_expected'] = [["", "",  ""]]
         if 'b_form_continue' not in st.session_state:
             st.session_state['b_form_continue'] = False
         if 'b_name' not in st.session_state:
@@ -53,11 +53,9 @@ class BenchmarkRenderer:
             question = ""
             expected = ""
             llm_answer = ""
-            similarity_score = ""
             # do question
             question_possibilities = ["question", "Question", "questions", "Questions", "QUESTIONS", "QUESTION"]
             expected_possibilities = ["expected", "Expected", "EXPECTED", "expecteds", "Expecteds", "EXPECTEDS", "expected answer", "Expected Answer", "EXPECTED ANSWER", "expected answers", "Expected Answers", "EXPECTED ANSWERS", "expected_answer","Expected_Answer", "EXPECTED_ANSWER","expected_answers", "Expected_Answers", "EXPECTED_ANSWERS"]
-            similarity_score_possibilties = ["score", "Score", "SCORE", "scores", "scores", "SCORES", "similarity_score", "Similarity_Score", "SIMILARITY_SCORE", "similarity_scores", "Similarity_Scores", "SIMILARITY_SCORES"]
             llm_answer_possibilities = ["llm", "LLM", "answer", "Answer", "ANSWER", "answers", "Answers", "ANSWERS", "llm_answer", "LLM_answer", "LLM_ANSWER", "llm_answers", "LLM_answers", "LLM_ANSWERS"]
             for q in question_possibilities:
                 if q in obj:
@@ -67,22 +65,18 @@ class BenchmarkRenderer:
                 if q in obj:
                     expected = obj[q]
                     break
-            for q in similarity_score_possibilties:
-                if q in obj:
-                    similarity_score = obj[q]
-                    break
             for q in llm_answer_possibilities:
                 if q in obj:
                     llm_answer = obj[q]
                     break
             
-            flat_array.append([question, expected, similarity_score, llm_answer])
+            flat_array.append([question, expected, llm_answer])
         
         # add imported array to the list of QAs
         last_entry = None
         if len(st.session_state.question_expected) > 0:
             last_entry = st.session_state.question_expected[-1]
-            if last_entry[0].strip() == "" and last_entry[1].strip() == "" and last_entry[2].strip() == "" and last_entry[3].strip() == "":
+            if last_entry[0].strip() == "" and last_entry[1].strip() == "" and last_entry[2].strip() == "":
                 st.session_state.question_expected.pop()
         if len(flat_array) < len(data_list):
             st.warning("Some of the items in your uploaded file could not be imported. Please check the 'Help' and ensure that your uploaded file follows the correct format.")
@@ -93,14 +87,14 @@ class BenchmarkRenderer:
         dropdown = st.popover("Help :grey_question:")
         with dropdown:
             st.markdown("The following file formats are accepted: CSV and JSON")
-            st.markdown("<b><u>NOTE:</u></b> You can choose to include either the 'Question' along with the 'Expected' or the 'Similarity Score' but you <b>MUST</b> include one. Including the 'LLM Answer' is optional.", unsafe_allow_html=True)
+            st.markdown("<b><u>NOTE:</u></b> you <b>MUST</b> include both the 'Question' and the 'Expected' answer. Including the LLM Answer is optional. You may include the LLM Answer if you just want to compare the LLM Answer against the Expected answer.", unsafe_allow_html=True)
             # CSV format
             st.markdown("<b><u>CSV format</u></b>", unsafe_allow_html=True)
-            columns = ["Question", "Expected", "LLM answer", "Similarity Score"]
-            data = [["Question #1", "Expected #1", "LLM Answer #1","0.21"],
-                    ["Question #2", "Expected #2", "LLM Answer #2", "0.97"],
-                    ["Question #3", "Expected #3", "LLM Answer #3", "0.33"],
-                    ["...", "...", "...", "..."]]
+            columns = ["Question", "Expected", "LLM answer"]
+            data = [["Question #1", "Expected #1", "LLM Answer #1"],
+                    ["Question #2", "Expected #2", "LLM Answer #2"],
+                    ["Question #3", "Expected #3", "LLM Answer #3"],
+                    ["...", "...", "..."]]
             df = pd.DataFrame(data, columns=columns)
             st.table(data=df)
             # json format
@@ -109,22 +103,18 @@ class BenchmarkRenderer:
                 "question": "Question #1",
                 "expected": "Expected #1",
                 "llm_answer": "LLM Answer #1",
-                "similarity_score": 0.21
             },{
                 "question": "Question #2",
                 "expected": "Expected #2",
                 "llm_answer": "LLM Answer #2",
-                "similarity_score": 0.97
             },{
                 "question": "Question #3",
                 "expected": "Expected #3",
                 "llm_answer": "LLM Answer #3",
-                "similarity_score": 0.33
             },{
                 "question": "...",
                 "expected": "...",
                 "llm_answer": "...",
-                "similarity_score": "..."
             }]
             st.write(example)
 
@@ -160,19 +150,6 @@ class BenchmarkRenderer:
             elif submitted:
                 st.warning("No file uploaded.")
 
-    """ check for valid similariaty score """
-    def valid_sim_score(self, score):
-        if score:
-            try:
-                f = float(score)
-                if f >0.0  and f <= 1.0:
-                    return True, f
-                else:
-                    return False, None
-            except:
-                return False, None
-        return False, None
-
     """ renders the questions and answers """
     def render_question_expected(self):
         st.subheader('Questions and Answers', divider='grey')
@@ -190,27 +167,25 @@ class BenchmarkRenderer:
                          st.rerun()
                 st.session_state.question_expected[idx][0] = st.text_area(f"Question", value= qa[0], key=f"question_{idx+1}")
                 st.session_state.question_expected[idx][1] = st.text_area(f"Expected Answer", value= qa[1], key=f"expected_{idx+1}")
-                st.session_state.question_expected[idx][2] = st.text_input(f"Similarity Score", value= qa[2], key=f"score_{idx+1}")
-                st.session_state.question_expected[idx][3] = st.text_area(f"LLM Answer", value= qa[3], key=f"answer_{idx+1}")
+                st.session_state.question_expected[idx][2] = st.text_area(f"LLM Answer", value= qa[2], key=f"answer_{idx+1}")
         new_qa = st.button("Add Question")
         if new_qa:
-            st.session_state.question_expected.append(["", "", "", ""])
+            st.session_state.question_expected.append(["", "",  ""])
             st.rerun()
 
     def create_question_expected_obj_list(self, qae_list):
         qae_dict = {}
         for idx, qe in enumerate(qae_list):
-            valid_score, score = self.valid_sim_score(qe[2].strip())
             question = qe[0].strip()
             if not question:
                 question = None
             expected = qe[1].strip()
             if not expected:
                 expected = None
-            answer = qe[3].strip()
+            answer = qe[2].strip()
             if not answer:
                 answer = None
-            qae_dict[str(idx+1)] = QAE(question=question, expected=expected, answer=answer, similarity_score=score)
+            qae_dict[str(idx+1)] = QAE(question=question, expected=expected, answer=answer)
         return qae_dict
 
 
@@ -243,7 +218,7 @@ class BenchmarkRenderer:
             ):
                 clear = st.button("Clear", use_container_width=True)
                 if clear:
-                    st.session_state.question_expected = [["", "", "", ""]]
+                    st.session_state.question_expected = [["", "", ""]]
                     st.rerun()
 
         if form_submitted:
@@ -276,40 +251,27 @@ class BenchmarkRenderer:
                 st.warning("No Q&As were given.")
             else:
                 missing_question_expecteds = []
-                invalid_sim_scores = []
 
                 # get number of missing q&a's, scores
                 for idx, qae in enumerate(st.session_state.question_expected):
-                    valid_sim, score = self.valid_sim_score(qae[2])
                     for x in range(len(qae)):
                         qae[x] = qae[x].strip()
-                    if (not qae[0] or not qae[1]) and not qae[2]: 
+                    if (not qae[0] or not qae[1]): 
                         missing_question_expecteds.append(str(idx+1))
-                    if qae[2] and not valid_sim:
-                        invalid_sim_scores.append(str(idx+1))
 
                 # compile all the ids to remove
                 ids_to_remove = []
                 for idx in missing_question_expecteds:
                     ids_to_remove.append(idx)
-                for idx in invalid_sim_scores:
-                    if not idx in ids_to_remove: 
-                        ids_to_remove.append(idx)
 
                 # provide a warning to the user that they will be removed
                 if len(missing_question_expecteds) > 0:
                     if len(ids_to_remove) == len(st.session_state.question_expected) or not submittable:
-                        st.warning(f"You have not provided a question/expected answer or a score for the following Q&As: {', '.join(missing_question_expecteds)}.")
+                        st.warning(f"You have not provided a question/expected answer for the following Q&As: {', '.join(missing_question_expecteds)}.")
                     elif submittable:
-                        st.warning(f"You have not provided a question/expected answer or a score for the following Q&As: {', '.join(missing_question_expecteds)}. You can click 'Submit' again to remove these Q&As and continue on to the evaluation.")
-                if len(invalid_sim_scores) > 0:
-                    if len(ids_to_remove) == len(st.session_state.question_expected) or not submittable:
-                        st.warning(f"You have provided invalid similarity scores for the following Q&As: {', '.join(invalid_sim_scores)}. The similarity score must be a decimal between 0 and 1.")
-                    elif submittable:
-                        st.warning(f"You have provided invalid similarity scores for the following Q&As: {', '.join(invalid_sim_scores)}. The similarity score must be a decimal between 0 and 1. You can click 'Submit' again to remove these Q&As and continue on to the evaluation.")
-
+                        st.warning(f"You have not provided a question/expected answer for the following Q&As: {', '.join(missing_question_expecteds)}. You can click 'Submit' again to remove these Q&As and continue on to the evaluation.")
                 # provide a continue button
-                if ((len(missing_question_expecteds) > 0 or len(invalid_sim_scores) > 0) and len(ids_to_remove) < len(st.session_state.question_expected)) and submittable:
+                if ((len(missing_question_expecteds) > 0) and len(ids_to_remove) < len(st.session_state.question_expected)) and submittable:
                     st.session_state["b_form_continue"] = True
                     st.session_state["ids_to_remove"] = ids_to_remove
                     

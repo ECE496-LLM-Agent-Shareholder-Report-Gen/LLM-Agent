@@ -5,9 +5,10 @@ from langchain.vectorstores.faiss import FAISS
 
 import datetime
 import json
-from chatbots import FusionChatbot, SimpleChatbot, StepbackChatbot, AgentChatbot
+from chatbots import FusionChatbot, SimpleChatbot, SimpleStepbackChatbot, StepbackChatbot, AgentChatbot
 
 from retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
+from template_formatter import LlamaTemplateFormatter
 
 """ Session
 holds the state of the session, which represents
@@ -45,7 +46,7 @@ class Session:
         self.initialized = False
 
     """ Initialize session for Q&A with LLM """
-    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None, load=True):
+    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None, load=True, isllama=False):
 
         if not self.retrieval_strategy or not self.retrieval_strategy in self.valid_retrieval_strategies:
             raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies)
@@ -72,15 +73,15 @@ class Session:
         print("loading chain \n")
 
         if self.llm_chain == "Simple Chain":
-            self.init_simple_chain(index_generator, llm)
+            self.init_simple_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "Agent Chain":
-            self.init_agent_chain(index_generator, llm)
+            self.init_agent_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "Fusion Chain":
-            self.init_fusion_chain(llm)
+            self.init_fusion_chain(llm, isllama=isllama)
         elif self.llm_chain == "Stepback Chain":
-            self.init_stepback_chain(llm)
+            self.init_stepback_chain(llm, isllama=isllama)
         elif self.llm_chain == "Simple Stepback Chain":
-            self.init_simple_stepback_chain(llm)
+            self.init_simple_stepback_chain(llm, isllama=isllama)
         else:
             raise Exception("No Chatbot initialized")
 
@@ -113,7 +114,7 @@ class Session:
         self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter"])
 
     """ Init Simple chain """
-    def init_simple_chain(self, index_generator, llm):
+    def init_simple_chain(self, index_generator, llm, isllama=False):
         print("initializing simple chatbot")
         flat_vs = self.gen_vectorstore_flat()
         vectorstore = None
@@ -125,10 +126,14 @@ class Session:
                 vectorstore = vs
             else:
                 index_generator.merge_vector_stores(vectorstore, vs)
-        self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+        if isllama:
+            self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore, template_formatter=LlamaTemplateFormatter())
+
+        else:
+            self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
 
         """ Init Simple chain """
-    def init_agent_chain(self, index_generator, llm):
+    def init_agent_chain(self, index_generator, llm, isllama=False):
         print("initializing simple chatbot")
         flat_vs = self.gen_vectorstore_flat()
         vectorstore = None
@@ -140,22 +145,35 @@ class Session:
                 vectorstore = vs
             else:
                 index_generator.merge_vector_stores(vectorstore, vs)
-        self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+        if isllama:
+            self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+
 
     """ Init Fusion chain """
-    def init_fusion_chain(self, llm):
+    def init_fusion_chain(self, llm,  isllama=False):
         print("initializing fusion chatbot")
-        self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     """ Init Stepback chain """
-    def init_stepback_chain(self, llm):
+    def init_stepback_chain(self, llm,  isllama=False):
         print("initializing stepback chatbot")
-        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     """ Init Simple Stepback chain """
-    def init_simple_stepback_chain(self, llm):
+    def init_simple_stepback_chain(self, llm,  isllama=False):
         print("initializing simple stepback chatbot")
-        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = SimpleStepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = SimpleStepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     def add_report(self, report):
         self.reports.append(report)
@@ -252,7 +270,7 @@ class ChatSession(Session):
                  embeddings_model_name=None,
                  llm_chain=None,
                  retrieval_strategy=None,
-                 conversation_history=[],
+                 conversation_history=None,
                  reports=[],
                  memory_enabled=False,
                  k=None,
@@ -269,7 +287,11 @@ class ChatSession(Session):
                          k_i=k_i,
                          *args,
                          **kwargs)
-        self.conversation_history = conversation_history
+        if conversation_history == None:
+            self.conversation_history = []
+        else:
+            self.conversation_history = conversation_history
+            
 
     def add_to_conversation(self, question=None, answer=None, replays=0):
         qa = QA(question, answer, replays=replays)
