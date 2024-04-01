@@ -1,6 +1,5 @@
 import json
 from random import randint
-from termios import TAB2
 import streamlit as st
 from streamlit_pdf_viewer import pdf_viewer
 from GUI.misc import check_session_valid, render_session_info
