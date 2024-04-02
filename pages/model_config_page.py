@@ -10,7 +10,12 @@ if not "global_singleton" in st.session_state:
 else: 
     global_singleton = st.session_state["global_singleton"]
 
-navbar(global_singleton)
+#navbar(global_singleton)
+#old_llm = global_singleton.llm
 
 llm = LLMRenderer(global_singleton)
 llm.render()
+navbar(global_singleton)
+
+
+#st.rerun()

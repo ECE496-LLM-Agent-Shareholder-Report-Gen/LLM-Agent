@@ -14,6 +14,7 @@ class EmbeddingRenderer:
         self.hug_api_key = ""
         self.hug_embedding_name = ""
         self.opai_api_key = ""
+        self.embedder_load_button_block = False
 
     def render(self):
         if self.dev:
@@ -42,10 +43,13 @@ class EmbeddingRenderer:
         with left_col:
             self.embedding_type = st.selectbox("Select your Embedding type", options=["None", "Huggingface","Openai"])
         with right_col:
+            if self.embedding_type == "None":
+                self.embedder_load_button_block = True
             #if passing api key and model name only, load huggingfaceapi call, otherwise let the user upload the model and use it 
             if self.embedding_type == "Huggingface":
-                self.hug_embedding_name = st.text_input("Please enter the name of the model on Huggingface", placeholder="Model name")
-                self.hug_api_key = st.text_input("Please enter your Huggingface API access key", placeholder="Key")
+                self.embedder_load_button_block = False
+                self.hug_embedding_name = st.text_input("Embedding Model", placeholder="Model name",key="huggingface_embed_name")
+                self.hug_api_key = st.text_input("Huggingface API access key", placeholder="Key", type='password',key="huggingface_api_key_Embed")
                 self.global_singleton.embedding_type = self.embedding_type
                 self.global_singleton.hug_api_key = self.hug_api_key
                 self.global_singleton.hug_embedding_name = self.hug_embedding_name
@@ -53,10 +57,10 @@ class EmbeddingRenderer:
                 self.global_singleton.opai_embedding_name = None
 
             if self.embedding_type == "Openai":
+                self.embedder_load_button_block = False
                 #self.opai_embedding_name = st.text_input("Please enter the name of the model on Openai", placeholder="Model name")
-                self.opai_embedding_name = st.selectbox("Embedding model", options=["text-embedding-3-small","text-embedding-3-large", "text-embedding-ada-002"])#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
-                self.opai_api_key = st.text_input("Please enter your openai api access key", placeholder="Key")
-
+                self.opai_embedding_name = st.selectbox("Embedding Model", options=["text-embedding-3-small","text-embedding-3-large", "text-embedding-ada-002"],key="opai_embed_name")#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
+                self.opai_api_key = st.text_input("Openai API access key", placeholder="Key",type='password',key="opai_api_key_embed")
                 self.global_singleton.embedding_type = self.embedding_type
                 self.global_singleton.opai_api_key = self.opai_api_key
                 self.global_singleton.opai_embedding_name = self.opai_embedding_name
@@ -65,7 +69,7 @@ class EmbeddingRenderer:
 
     def render_load(self):
         load_embedding_button = False
-        load_embedding_button = st.button("Load Embedding", use_container_width = True)
+        load_embedding_button = st.button("Load Embedding", use_container_width = True, disabled = self.embedder_load_button_block)
         if load_embedding_button:
             #for openai
             if self.global_singleton.opai_embedding_name is not None:
@@ -79,7 +83,7 @@ class EmbeddingRenderer:
             #for huggingface
             elif self.global_singleton.hug_embedding_name is not None:
                 if self.global_singleton.hug_api_key is None:
-                    st.error("Please enter a Huggingface API key (not set by the user)")
+                    st.error("Please enter a Huggingface API key")
                 else:
                     if check_hug_key(self.global_singleton.hug_api_key):
                         self.global_singleton.embeddings = load_word_embedding(self.global_singleton)

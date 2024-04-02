@@ -7,7 +7,7 @@ from GUI.shared import load_global_singleton, load_llm
 from GUI.test_open_key import check_openai_api_key, check_hug_key
 import gc
 import torch
-
+#from GUI.navbar import navbar
 
 #from GUI.shared import 
 #def not working might have messed up other parts, if you see this message and need me to fix it back message me on discord - mert
@@ -23,6 +23,7 @@ class LLMRenderer:
         self.hug_llm_name = hug_llm_name
         self.opai_api_key = opai_api_key
         self.opai_llm_name = opai_llm_name
+        self.load_button_block = False
         if "llm_path" not in st.session_state:
             st.session_state["llm_path"] = ""
         if "llm_type" not in st.session_state:
@@ -41,6 +42,8 @@ class LLMRenderer:
         return EmbeddingRenderer(_global_singleton, dev=_dev)
 
     def render(self):
+        
+        #print("vetteeeeeeeen")
         if self.dev:
             self.render_info_for_dev()
             st.divider()
@@ -48,6 +51,8 @@ class LLMRenderer:
         self.render_llm_selector()
         self.render_load()
         self.embedding_renderer.render()
+        #navbar(self.global_singleton)
+        #print("navbar llm",self.global_singleton.llm)
 
     def render_info_for_dev(self):
         if "llm_path" not in st.session_state:
@@ -98,7 +103,10 @@ class LLMRenderer:
         with left_col:
             self.llm_type = st.selectbox("Select your LLM type", options=["None", "LLAMA", "Huggingface", "Openai"])#, key="llm_type")
         with right_col:
+            if self.llm_type == "None":
+                self.load_button_block = True
             if self.llm_type == "LLAMA":
+                self.load_button_block = False
                 model_list = get_model_list_ollama()
                 self.llm_path = st.selectbox("LLM", options=model_list)
                 #self.llm_path = st.selectbox("LLM", options=["llama2","mistral","gemma"])#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
@@ -113,8 +121,10 @@ class LLMRenderer:
                 st.session_state["global_singleton"].opai_llm_name = None
 
             if self.llm_type == 'Huggingface':
-                self.hug_api_key = st.text_input("Please enter your Huggingface API access key", placeholder="Key")#, key="huggingface_api_key")
-                self.hug_llm_name = st.text_input("Please enter the name of the model on Huggingface", placeholder="Model name")#, key = "huggingface_model_name")
+                self.load_button_block = False
+                self.hug_llm_name = st.text_input("LLM", placeholder="Model name",key="huggingface_LLM_name")#, key = "huggingface_model_name")
+                self.hug_api_key = st.text_input("Huggingface API access key", placeholder="Key",type='password',key = "huggingface_api_key_LLM")#, key="huggingface_api_key")
+                #self.hug_api_key = st.text_input("Please enter your Huggingface API access key", placeholder="Key")#, key="huggingface_api_key")
                 st.session_state["global_singleton"].hug_llm_name = self.hug_llm_name
                 st.session_state["global_singleton"].hug_api_key = self.hug_api_key
                 st.session_state["global_singleton"].llm_type = self.llm_type
@@ -128,8 +138,9 @@ class LLMRenderer:
                 st.session_state["global_singleton"].opai_llm_name = None
 
             if self.llm_type == "Openai":
-                self.opai_api_key = st.text_input("Please enter your openai api access key", placeholder="Key")#, key="opai_api_key")
-                self.opai_llm_name = st.selectbox("LLM", options=["gpt-4-turbo-preview","gpt-3.5-turbo"])#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
+                self.load_button_block = False
+                self.opai_llm_name = st.selectbox("LLM", options=["gpt-4-turbo-preview","gpt-3.5-turbo"],key="opai_LLM_name")#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
+                self.opai_api_key = st.text_input("Openai API access key", placeholder="Key",type='password',key="opai_api_key_LLM")#, key="opai_api_key")
                 st.session_state["global_singleton"].opai_api_key = self.opai_api_key
                 st.session_state["global_singleton"].llm_type = self.llm_type
                 self.global_singleton.opai_api_key = self.opai_api_key
@@ -144,7 +155,7 @@ class LLMRenderer:
             
     def render_load(self):
         load_llm_button = False
-        load_llm_button = st.button("Load LLM", use_container_width = True)
+        load_llm_button = st.button("Load LLM", use_container_width = True, disabled = self.load_button_block)
         if load_llm_button:
             #for openai
             if self.global_singleton.opai_llm_name is not None:
@@ -174,9 +185,21 @@ class LLMRenderer:
             else:
                 #reset_cache_cuda(self.global_singleton)
                 self.global_singleton.llm = load_llm(self.global_singleton)
-                print(self.global_singleton.llm)
+                #navbar(self.global_singleton)
+                #print(self.global_singleton.llm)
+                #print("deneme",st.session_state)
+                
                 #reset_cache_cuda()
                 st.session_state["global_singleton"].llm = self.global_singleton.llm
+                st.rerun()
+                
+                #print("deleting navbar")
+                #del_and_recrate_navbar(self.global_singleton)
+                #print("navbar updated")
+
+                #print("rerunladi")
+                #st.experimental_rerun()
+                #st.rerun()
                 #load_llm_button = False
 """
     def render_load(self):
@@ -290,3 +313,7 @@ def get_model_list_ollama():
     for file in os.listdir(dir):
         model_list.append(file)
     return model_list
+
+def del_and_recrate_navbar(global_singleton):
+    del global_singleton.navbar
+    navbar(global_singleton)

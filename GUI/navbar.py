@@ -199,6 +199,8 @@ def do_llm_select(global_singleton):
 def navbar(global_singleton):
     # Sidebar
     with st.sidebar:
+        #st.rerun()
+        #print("girid")
         do_chat_sessions(global_singleton)
         do_benchmarks(global_singleton)
         do_benchmark_compare(global_singleton)
