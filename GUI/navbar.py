@@ -86,9 +86,9 @@ def do_chat_sessions(global_singleton):
                                 }
                                 """,
                         ):
-            new_session = st.button("＋ Create new Session", use_container_width=True, key="create1")
+            new_session = st.button("＋ New Chat Session", use_container_width=True, key="create1")
     else:
-        new_session = st.button("＋ Create new Session", use_container_width=True, key="create2")
+        new_session = st.button("＋ New Chat Session", use_container_width=True, key="create2")
     if new_session:
         disable_active_session(global_singleton)
         st.session_state["new_chat_session"] = True
