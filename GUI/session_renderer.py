@@ -1,6 +1,7 @@
 import datetime
 from random import randint
 import streamlit as st
+from GUI.navbar import disable_active_session
 from session import QAE, BenchmarkSession, ChatSession, Report, Session
 from sec_api import QueryApi
 import json, requests
@@ -31,6 +32,9 @@ class SessionRenderer:
             st.session_state['memory_enabled'] = False
         if "widget_key" not in st.session_state:
             st.session_state["widget_key"] = str(randint(1000, 100000000))
+        if isBenchmark:
+            if "question_expected_final" not in st.session_state:
+                st.switch_page("pages/benchmark_page.py")
 
     def render(self):
         if self.isBenchmark:
@@ -53,6 +57,9 @@ class SessionRenderer:
     def render_header_benchmark(self):
         st.title('Complete Benchmark Creation')
         st.markdown('<b>Select the reports, retrieval strategy, and LLM chain</b>', unsafe_allow_html=True)
+        back_to_qae = st.button("Back", key="b_back")
+        if back_to_qae:
+            st.switch_page("pages/benchmark_page.py")
 
     def render_header(self):
         st.title('Chat with Shareholder Reports')
@@ -61,11 +68,9 @@ class SessionRenderer:
 
     # callback handler for removing reports
     def remove_report(self, file_path):
-        print("Removing report...")
         for report in st.session_state.reports:
             if report.file_path == file_path:
                 st.session_state.reports.remove(report)
-                print("removed report: ", file_path)
 
     # check if report already in reports
     def check_in_reports(self, report, reports):
@@ -345,12 +350,7 @@ class SessionRenderer:
             'description': 'This strategy passes an input to the vector store, it finds k_i documents using the simple retrieval strategy, then re-ranks them using a cross-encoder, and returns k documents to use as context. <u>NOTE: a cross-encoder must be loaded in to use this strategy.</u>',
             'k_i_exists': True
         },
-        {
-            'key': 'PDR',
-            'title': 'Parent Document Retrieval Strategy',
-            'description': 'This strategy uses larger chunks (called parents) and smaller chunks (called children). The similarity search is done on the child chunks, and the parents of the child chunks are retrieved, up to k parent chunks.',
-            'k_i_exists': False
-        },
+
         {
             'key': 'RRS',
             'title': 'Random Retrieval Strategy',
@@ -373,7 +373,7 @@ class SessionRenderer:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=8)
+                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=2)
                 if strat['k_i_exists']:
                     with col2:
                         st.session_state.k_i = st.number_input("Initial number of documents to fetch (k_i)", min_value=0, step=1, value=100)
@@ -418,11 +418,19 @@ class SessionRenderer:
             st.session_state.llm_chain = st.selectbox("Choose an LLM Chain", options=strategy_options, key='chain_select')
 
     def render_create(self):
-        st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
-            print("creating session")
-            session = ChatSession(name=st.session_state.name,
+            name = st.session_state["name"].strip()
+            submittable = True
+            if not name:
+                submittable = False
+            if submittable:
+                for ses in self.global_singleton.chat_session_manager.sessions:
+                    if ses == name:
+                        st.error(f"The session name '{name}' is already being used. Please try another name.")
+                        submittable = False
+            try:
+                session = ChatSession(name=st.session_state.name,
                                     #embeddings_model_name=self.global_singleton.embeddings_model_name,
                                     llm_chain=st.session_state.llm_chain,
                                     retrieval_strategy=st.session_state.retrieval_strategy,
@@ -430,30 +438,50 @@ class SessionRenderer:
                                     memory_enabled=st.session_state.memory_enabled,
                                     k=st.session_state.k,
                                     k_i=st.session_state.k_i)
-            st.session_state.reports = []
-            self.global_singleton.chat_session_manager.add_session(session)
-            self.global_singleton.chat_session_manager.set_active_session(session)
-            st.session_state["global_singleton"] = self.global_singleton
-            st.switch_page("pages/chat_page.py")
+                del st.session_state["reports"]
+                del st.session_state["name"]
+                del st.session_state["memory_enabled"]
+                del st.session_state["llm_chain"]
+                del st.session_state["retrieval_strategy"]
+                del st.session_state["k"]
+                del st.session_state["k_i"]
+                disable_active_session(self.global_singleton)
+                self.global_singleton.chat_session_manager.add_session(session)
+                self.global_singleton.chat_session_manager.set_active_session(session)
+                st.session_state["global_singleton"] = self.global_singleton
+                st.switch_page("pages/chat_page.py")
+            except Exception as e:
+                print(e)
+                st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
 
     def render_create_benchmark(self):
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
-            # turn st.session_state.question_expected to a dict
-            qae_dict = {}
-            for idx, qe in enumerate(st.session_state.question_expected):
-                qae_dict[idx+1] = QAE(question=qe[0], expected=qe[1])
-            session = BenchmarkSession(name=st.session_state.name,
-                                    #    embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                       llm_chain=st.session_state.llm_chain,
-                                       retrieval_strategy=st.session_state.retrieval_strategy,
-                                       question_answer_expected=qae_dict,
-                                       reports=st.session_state.reports,
-                                       memory_enabled=st.session_state.memory_enabled,k=st.session_state.k,
-                                       k_i=st.session_state.k_i)
-            st.session_state.reports = []
-            self.global_singleton.benchmark_session_manager.add_session(session)
-            self.global_singleton.benchmark_session_manager.set_active_session(session)
-            st.session_state["global_singleton"] = self.global_singleton
-            st.switch_page("pages/benchmark_eval_page.py")
+            try:
+                # turn st.session_state.question_expected to a dict
+                session = BenchmarkSession(name=st.session_state.b_name,
+                                        #    embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                        llm_chain=st.session_state.llm_chain,
+                                        retrieval_strategy=st.session_state.retrieval_strategy,
+                                        question_answer_expected= st.session_state.question_expected_final,
+                                        reports=st.session_state.reports,
+                                        memory_enabled=st.session_state.memory_enabled,k=st.session_state.k,
+                                        k_i=st.session_state.k_i)
+                del st.session_state["reports"]
+                del st.session_state["b_name"]
+                del st.session_state["question_expected_final"]
+                del st.session_state["question_expected"]
+                del st.session_state["memory_enabled"]
+                del st.session_state["llm_chain"]
+                del st.session_state["retrieval_strategy"]
+                del st.session_state["k"]
+                del st.session_state["k_i"]
+                self.global_singleton.benchmark_session_manager.add_session(session)
+                disable_active_session(self.global_singleton)
+                self.global_singleton.benchmark_session_manager.set_active_session(session)
+                st.session_state["global_singleton"] = self.global_singleton
+                st.switch_page("pages/benchmark_eval_page.py")
+            except Exception as e:
+                print(e)
+                st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")

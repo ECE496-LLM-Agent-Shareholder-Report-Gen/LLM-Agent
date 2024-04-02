@@ -1,8 +1,7 @@
 import streamlit as st
-from GUI.llm_select_renderer import LLMRenderer
+from GUI.benchmark_compare_renderer import BenchmarkCompareRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar
-
 
 if not "global_singleton" in st.session_state:
     global_singleton = load_global_singleton()
@@ -10,12 +9,7 @@ if not "global_singleton" in st.session_state:
 else: 
     global_singleton = st.session_state["global_singleton"]
 
-#navbar(global_singleton)
-#old_llm = global_singleton.llm
-
-llm = LLMRenderer(global_singleton)
-llm.render()
 navbar(global_singleton)
 
-
-#st.rerun()
+renderer = BenchmarkCompareRenderer(global_singleton)
+renderer.render()

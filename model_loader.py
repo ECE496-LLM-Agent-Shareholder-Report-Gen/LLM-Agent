@@ -105,6 +105,7 @@ class LLMModelLoader:
         )
 
     def load_ollama(self,model="llama2", **kwargs):
+    #def load_ollama(self,model,**kwargs):
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
         return ChatOllama(model=model, 

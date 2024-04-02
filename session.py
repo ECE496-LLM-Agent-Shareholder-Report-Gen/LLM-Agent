@@ -5,9 +5,10 @@ from langchain.vectorstores.faiss import FAISS
 
 import datetime
 import json
-from chatbots import FusionChatbot, SimpleChatbot, StepbackChatbot, AgentChatbot
+from chatbots import FusionChatbot, SimpleChatbot, SimpleStepbackChatbot, StepbackChatbot, AgentChatbot
 
 from retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
+from template_formatter import LlamaTemplateFormatter
 
 """ Session
 holds the state of the session, which represents
@@ -28,7 +29,6 @@ class Session:
                  k_i=None,
                  *args, **kwargs):
 
-        print("init session")
         self.reports = reports
         self.llm_chain = llm_chain
         self.retrieval_strategy = retrieval_strategy
@@ -46,7 +46,7 @@ class Session:
         self.initialized = False
 
     """ Initialize session for Q&A with LLM """
-    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None, load=True):
+    def initialize(self, index_generator, file_manager, llm, embeddings, cross_encoder=None, load=True, isllama=False):
 
         if not self.retrieval_strategy or not self.retrieval_strategy in self.valid_retrieval_strategies:
             raise Exception("Invalid retrieval strategy: ", self.retrieval_strategy, ", must be one of ", ", ".self.valid_retrieval_strategies)
@@ -54,8 +54,8 @@ class Session:
         if not self.llm_chain or not self.llm_chain in self.valid_llm_chains:
             raise Exception("Invalid LLM Chain: ", self.llm_chain, ", must be one of ", self.valid_llm_chains)
 
-        if len(self.reports) == 0:
-            raise Exception("No reports added")
+        # if len(self.reports) == 0:
+        #     raise Exception("No reports added")
 
         # get vector stores from files
         self.populate_vectorstore(file_manager, index_generator, embeddings, self.reports, load=load)
@@ -73,15 +73,15 @@ class Session:
         print("loading chain \n")
 
         if self.llm_chain == "Simple Chain":
-            self.init_simple_chain(index_generator, llm)
+            self.init_simple_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "Agent Chain":
-            self.init_agent_chain(index_generator, llm)
+            self.init_agent_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "Fusion Chain":
-            self.init_fusion_chain(llm)
+            self.init_fusion_chain(llm, isllama=isllama)
         elif self.llm_chain == "Stepback Chain":
-            self.init_stepback_chain(llm)
+            self.init_stepback_chain(llm, isllama=isllama)
         elif self.llm_chain == "Simple Stepback Chain":
-            self.init_simple_stepback_chain(llm)
+            self.init_simple_stepback_chain(llm, isllama=isllama)
         else:
             raise Exception("No Chatbot initialized")
 
@@ -97,7 +97,7 @@ class Session:
     def init_simple_retriever(self):
         print("initializing simple retriever strategy")
         simple_retriever = SimpleRetrieverStrategy(k=self.k)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init reranker retriever strategy """
     def init_reranker_retriever(self, cross_encoder=None):
@@ -105,16 +105,16 @@ class Session:
         if cross_encoder == None:
             raise Exception("Tried to initailize Reranker strategy without a cross encoder")
         reranker_retriever = ReRankerRetrieverStrategy(cross_encoder=cross_encoder, k=self.k, init_k=self.k_i)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init random retriever strategy """
     def init_random_retriever(self):
         print("initializing Reranker retriever strategy")
         stochastic_retriever = StochasticRetrieverStrategy(k=self.k, fetch_k=self.k_i)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init Simple chain """
-    def init_simple_chain(self, index_generator, llm):
+    def init_simple_chain(self, index_generator, llm, isllama=False):
         print("initializing simple chatbot")
         flat_vs = self.gen_vectorstore_flat()
         vectorstore = None
@@ -126,10 +126,14 @@ class Session:
                 vectorstore = vs
             else:
                 index_generator.merge_vector_stores(vectorstore, vs)
-        self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+        if isllama:
+            self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore, template_formatter=LlamaTemplateFormatter())
+
+        else:
+            self.chatbot = SimpleChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
 
         """ Init Simple chain """
-    def init_agent_chain(self, index_generator, llm):
+    def init_agent_chain(self, index_generator, llm, isllama=False):
         print("initializing simple chatbot")
         flat_vs = self.gen_vectorstore_flat()
         vectorstore = None
@@ -141,22 +145,35 @@ class Session:
                 vectorstore = vs
             else:
                 index_generator.merge_vector_stores(vectorstore, vs)
-        self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+        if isllama:
+            self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = AgentChatbot(self.retriever_strategy_obj, llm, vectorstore=vectorstore)
+
 
     """ Init Fusion chain """
-    def init_fusion_chain(self, llm):
+    def init_fusion_chain(self, llm,  isllama=False):
         print("initializing fusion chatbot")
-        self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = FusionChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     """ Init Stepback chain """
-    def init_stepback_chain(self, llm):
+    def init_stepback_chain(self, llm,  isllama=False):
         print("initializing stepback chatbot")
-        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     """ Init Simple Stepback chain """
-    def init_simple_stepback_chain(self, llm):
+    def init_simple_stepback_chain(self, llm,  isllama=False):
         print("initializing simple stepback chatbot")
-        self.chatbot = StepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
+        if isllama:
+            self.chatbot = SimpleStepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k, template_formatter=LlamaTemplateFormatter())
+        else:
+            self.chatbot = SimpleStepbackChatbot(self.retriever_strategy_obj, llm, vectorstores=self.vectorstores, max_k=self.k)
 
     def add_report(self, report):
         self.reports.append(report)
@@ -188,6 +205,7 @@ class Session:
             return None
 
     def populate_vectorstore(self, file_manager, index_generator, embeddings, reports, load=True):
+        self.vectorstores = {}
         for report in reports:
             if load:
                 vectorstore = self.load_vectorstore(file_manager, index_generator, embeddings, report)
@@ -252,7 +270,7 @@ class ChatSession(Session):
                  embeddings_model_name=None,
                  llm_chain=None,
                  retrieval_strategy=None,
-                 conversation_history=[],
+                 conversation_history=None,
                  reports=[],
                  memory_enabled=False,
                  k=None,
@@ -269,10 +287,14 @@ class ChatSession(Session):
                          k_i=k_i,
                          *args,
                          **kwargs)
-        self.conversation_history = conversation_history
+        if conversation_history == None:
+            self.conversation_history = []
+        else:
+            self.conversation_history = conversation_history
+            
 
-    def add_to_conversation(self, question=None, answer=None, replays=0):
-        qa = QA(question, answer, replays=replays)
+    def add_to_conversation(self, question=None, answer=None, replays=0, **kwargs):
+        qa = QA(question, answer, replays=replays, **kwargs)
         if not isinstance(self.conversation_history, list):
             self.conversation_history = []
         self.conversation_history.append(qa)
@@ -326,14 +348,15 @@ class BenchmarkSession(Session):
 
     def update_qae(self, id, question, answer, expected=None, similarity_score=None, response_time=None):
         qae = QAE(question, answer, expected=expected, similarity_score=similarity_score, response_time=response_time)
-        self.question_answer_expected[id] = qae
+        self.question_answer_expected[str(id)] = qae
 
     def set_qae(self, question_answer_expected={}):
+        print(question_answer_expected)
         self.question_answer_expected = question_answer_expected
 
     def set_qae_from_dict(self, qae_dict):
         for id, qae in qae_dict.items():
-            self.update(id, **qae)
+            self.update_qae(id, **qae)
 
     @classmethod
     def from_dict(cls, cls_dict):
@@ -349,6 +372,18 @@ class BenchmarkSession(Session):
             temp_qae_dict[id] = qae.encode()
         ses_dict["question_answer_expected"] = temp_qae_dict
         return ses_dict
+    
+    def qae_to_dict_list(self):
+        qae_list = []
+        for id, qae in self.question_answer_expected.items():
+            qae_list.append({
+                "question": qae.question,
+                "expected": qae.expected,
+                "llm_answer": qae.answer,
+                "similarity_score": qae.similarity_score,
+            })
+        return qae_list
+
 
 
 
@@ -358,9 +393,10 @@ class BenchmarkSession(Session):
 """ QA
 class that represents a question and an answer """
 class QA:
-    def __init__(self, question, answer, replays=0):
+    def __init__(self, question, answer, context=None, replays=0):
         self.question = question
         self.answer = answer
+        self.context = context
         self.replays = replays
 
     def encode(self):

@@ -170,12 +170,14 @@ class SubQueryGenerator:
         # in case the above parsing doesn't work...
         # create the matches ourselves (company, year, reportType, quarter, question)
         leftovers = []
-        if len(yearly_matches) == 0 or len(quarter_matches) == 0:
+        if len(yearly_matches) == 0 and len(quarter_matches) == 0:
             # check by checking each line if the report is there
             lines = unparsed_questions.split("\n")
             for line in lines:
                 for report in self.report_names:
                     if report in line:
+                        if "sure" in line.lower():
+                            continue
                         r_match = [r_part for r_part in report.split("_")]
                         question = re.sub(rf".{re.escape(report)}.", "", line)
                         r_match.append(question)

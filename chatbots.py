@@ -9,7 +9,7 @@ from operator import itemgetter
 from abc import ABC, abstractmethod
 
 from subquery_generator import SubQueryGenerator
-from template_formatter import LlamaTemplateFormatter
+from template_formatter import LlamaTemplateFormatter, NoTemplateFormatter
 
 import streamlit as st
 import GUI.misc as Gmisc
@@ -24,7 +24,7 @@ from llm_agents.tools.retriever_simple import RetrieverTool
 
 class Chatbot(ABC):
 
-    def __init__(self, retriever_strategy, llm, template_formatter=LlamaTemplateFormatter(), memory_limit=3000, progressive_memory=True, memory_active=False):
+    def __init__(self, retriever_strategy, llm, template_formatter=NoTemplateFormatter(), memory_limit=3000, progressive_memory=True, memory_active=False):
         self.retriever_strategy = retriever_strategy
         self.llm = llm
         self.template = None
@@ -65,8 +65,6 @@ class Chatbot(ABC):
         duration = stop_time - start_time
         duration_s = duration/1e9
         return response, score, duration_s
-
-
 
     def update_memory(self, question, answer):
         # remove any curly braces from question and answer
@@ -170,7 +168,9 @@ class SimpleChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context
 
 
 """ simple """
@@ -253,7 +253,9 @@ class AgentChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context
 
 
 
@@ -350,8 +352,9 @@ class FusionChatbot(Chatbot):
             all_responses.append(final_stream_response)
 
         full_response = "\n\n".join(all_responses)
-
-        return full_response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return full_response, context
 
 
 """ StepbackChatbot """
@@ -486,13 +489,14 @@ class StepbackChatbot(Chatbot):
         # get the matches
         all_matches =  self.sub_query_generator.parse_questions(sub_query_response)
         questions = [match[-1] for match in all_matches]
+        sources = [" ".join(match[:-1]) for match in all_matches]
 
         # answer the broken down questions
         all_streams = []
         for match in all_matches:
             all_streams.append(self.answer_chain.stream(match))
 
-        return list(zip(all_streams, questions))
+        return list(zip(all_streams, questions, sources))
 
     def stream_final_response(self, question, sub_queries, responses):
         temp_mem = list(zip(sub_queries, responses))
@@ -531,24 +535,30 @@ class StepbackChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         sub_query_responses_streams_question = self.stream_sub_query_responses(sub_query_response)
 
-        sub_queries = [q for s, q in sub_query_responses_streams_question]
+        sub_queries = [q for _, q, _ in sub_query_responses_streams_question]
         sub_query_answers = []
 
-        for stream, sub_query in sub_query_responses_streams_question:
-            st.write(f"<b>{sub_query}:</b>", unsafe_allow_html=True)
+        for idx, (stream, sub_query, source) in enumerate(sub_query_responses_streams_question):
+            st.markdown(f"<b>{idx + 1}. {source} - {sub_query}:</b>", unsafe_allow_html=True)
             sub_query_answer = Gmisc.write_stream(stream)
-            sub_query_answers.append(sub_query_answer)
-            all_responses.append(f"{sub_query}\n{sub_query_answer}")
+            sub_query_answers.append(f"{sub_query_answer}")
+            all_responses.append(f"{idx + 1}. {source} - {sub_query}\n\n{sub_query_answer}")
 
         # get final result
+        if len(sub_queries) == 1:
+            context = self.retriever_strategy.get_recent_context()
+            self.retriever_strategy.clear_recent_context()
+            # only one sub query, treat is as the final result
+            return "\n\n".join(all_responses), context
         final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
         final_response = Gmisc.write_stream(final_stream)
 
         all_responses.append(final_response)
 
         full_response = "\n\n".join(all_responses)
-
-        return full_response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return full_response, context
 
 
 
@@ -671,4 +681,6 @@ class SimpleStepbackChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context

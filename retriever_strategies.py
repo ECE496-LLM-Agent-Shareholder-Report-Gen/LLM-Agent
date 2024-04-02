@@ -20,6 +20,7 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
     def __init__(self, strategies, metadata=["source"]):
         self.strategies = strategies
         self.metadata = metadata
+        self.recent_context = ""
 
     def retrieve_context(self, input, *args,**kwargs):
         if isinstance(input, dict):
@@ -29,15 +30,24 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
         relevant_documents = None
         for strategy in self.strategies:
             relevant_documents = strategy.retrieve_context(question=question, relevant_documents=relevant_documents, *args, **kwargs)
-        
+        self.recent_context += f"Question: {question}\n\n"
         return self.combine_context(relevant_documents)
     
     def combine_context(self, documents):
         context = ""
         for doc in documents:
             show_metadata = ", ".join([f"{metadata_key} {doc.metadata[metadata_key]}" for metadata_key in self.metadata if metadata_key in doc.metadata])
-            context += f"Excerpt from {show_metadata}:\n{doc.page_content}\n\n"
+            context += f"Excerpt from {show_metadata}:\n\n{doc.page_content}\n\n\n"
+        self.recent_context += context
+        self.recent_context += "=" * 50 
+        self.recent_context += "\n\n"
         return context
+    
+    def get_recent_context(self):
+        return self.recent_context
+
+    def clear_recent_context(self):
+        self.recent_context = ""
 
     def set_vectorstore(self, vectorstore):
         for strategy in self.strategies:
@@ -62,7 +72,7 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         if vectorstore != None:
             vs = vectorstore
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         if k == None:
             k = self.k
         if relevant_documents == None:
@@ -90,7 +100,7 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
         if k == None:
             k = self.k
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         if relevant_documents == None:
             # get relevant documents
             relevant_documents = vs.similarity_search(question,  k=self.init_k+self.skip*k, *args, **kwargs)
@@ -129,7 +139,7 @@ class NextRetrieverStrategy(RetrieverStrategy):
         if vectorstore != None:
             vs = vectorstore
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         
 
         # get question count and update it
@@ -166,7 +176,7 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
             vs = vectorstore
             print("STRATEGY: Using self inserted vectorstore!")
         if vs == None:
-            raise Exception("Error: No vectorstore given!")
+            return []
         
         # set k
         if k == None:
