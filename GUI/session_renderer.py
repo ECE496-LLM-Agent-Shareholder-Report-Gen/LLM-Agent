@@ -1,6 +1,9 @@
+import datetime
 from random import randint
 import streamlit as st
 from session import QAE, BenchmarkSession, ChatSession, Report, Session
+from sec_api import QueryApi
+import json, requests
 
 import os
 
@@ -88,73 +91,146 @@ class SessionRenderer:
     # renders the component that lets users choose what reports to query on
     def render_report_loader(self):
         st.subheader('Choose your Shareholder Reports', divider='grey')
-        uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
-        st.markdown('Enter some info about the report')
 
-        if "company_ticker" not in st.session_state:
-            st.session_state["company_ticker"] = ""
-        if "year" not in st.session_state:
-            st.session_state["year"] = ""
-        if "report_type" not in st.session_state:
-            st.session_state["report_type"] = "10K"
-        if "report_type_other" not in st.session_state:
-            st.session_state["report_type_other"] = ""
-        if "report_quarter" not in st.session_state:
-            st.session_state["report_quarter"] = "Q1"
+        upload_report, sec_report, existing_report = st.tabs(["Upload Report", "Fetch From SEC EDGAR", "Use Existing Report"])
+        
+        with upload_report:
+            uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
+            st.markdown('Enter some info about the report')
 
-        company_ticker = None
-        year = None
-        report_type = None
-        report_quarter = None
-        report_type_other = None
+            if "company_ticker" not in st.session_state:
+                st.session_state["company_ticker"] = ""
+            if "year" not in st.session_state:
+                st.session_state["year"] = ""
+            if "report_type" not in st.session_state:
+                st.session_state["report_type"] = "10K"
+            if "report_type_other" not in st.session_state:
+                st.session_state["report_type_other"] = ""
+            if "report_quarter" not in st.session_state:
+                st.session_state["report_quarter"] = "Q1"
 
-        left_col, right_col = st.columns(2)
-        with left_col:
-            company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
-            report_type_options = ["10K","10Q", "Other"]
-            report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
+            company_ticker = None
+            year = None
+            report_type = None
+            report_quarter = None
+            report_type_other = None
 
-
-        with right_col:
-            year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
-            if report_type == '10Q':
-                report_quarter_options = ["Q1", "Q2", "Q3"]
-                report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
-            if report_type == 'Other':
-                report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
-
-        save_report = st.checkbox("Would you like to save the report for future use?", value=True)
-
-        sec_filing = st.text_input("Or find an SEC filing by Company Ticker or CIK", placeholder="Company Ticker or CIK...", max_chars=20, key="sec_filing")
-        # do sec filing related fetching...
-
-        st.markdown("Or choose from previously saved reports")
-        reports = ['AMD 2022 10K', 'AMD 2022 10Q Q1', 'AMD 2022 10Q Q2', 'AMD 2022 10Q Q3', 'INTC 2022 10K', 'INTC 2022 10Q Q1', 'INTC 2022 10Q Q2', 'INTC 2022 10Q Q3']
-        saved_ticker_col, saved_year_col, saved_report_type_col, saved_quarter_col = st.columns(4)
-        selected_companies = []
-        selected_years = []
-        selected_report_types =[]
-        selected_quarters = []
-        with saved_ticker_col:
-            comps = self.global_singleton.file_manager.get_companies()
-            selected_companies = st.multiselect("Company Ticker", comps)
-            pass
-        with saved_year_col:
-            years = self.global_singleton.file_manager.get_years(selected_companies)
-            selected_years = st.multiselect("Year", years)
-            pass
-        with saved_report_type_col:
-            report_types = self.global_singleton.file_manager.get_report_types(selected_companies, selected_years)
-            selected_report_types = st.multiselect("Report Type", report_types)
-            pass
-        with saved_quarter_col:
-            quarters = self.global_singleton.file_manager.get_quarters(selected_companies, selected_years, selected_report_types)
-            selected_quarters = st.multiselect("Quarter (if 10Q)", quarters)
-            pass
+            left_col, right_col = st.columns(2)
+            with left_col:
+                company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
+                report_type_options = ["10K","10Q", "Other"]
+                report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
 
 
+            with right_col:
+                year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
+                if report_type == '10Q':
+                    report_quarter_options = ["Q1", "Q2", "Q3"]
+                    report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
+                if report_type == 'Other':
+                    report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
 
-        submitted = st.button("Add Report", use_container_width=True)
+            save_report = st.checkbox("Would you like to save the report for future use?", value=True)
+
+            submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
+
+        
+        with sec_report:
+            sec_api_key = st.text_input("SEC API Key", placeholder="Enter API Key", type="password", key="sec_api_key")
+
+            with st.form(clear_on_submit=True, key="sec_form"):
+                left_col, right_col = st.columns(2)
+                with left_col:
+                    sec_filing_ticker = st.text_input("Company Ticker", placeholder="Enter Company Ticker...", max_chars=5, key="sec_filing_ticker_input")
+                with right_col:
+                    sec_filing_year = st.text_input("10K Year", placeholder="Enter Report Year...", max_chars=4, key="sec_filing_year_input")
+
+
+                sec_save_report = st.checkbox("Would you like to save the report for future use?", value=True, key="sec_save")
+                sec_submitted = st.form_submit_button("Add Report", use_container_width=True)
+
+        with existing_report:
+            reports = ['AMD 2022 10K', 'AMD 2022 10Q Q1', 'AMD 2022 10Q Q2', 'AMD 2022 10Q Q3', 'INTC 2022 10K', 'INTC 2022 10Q Q1', 'INTC 2022 10Q Q2', 'INTC 2022 10Q Q3']
+            saved_ticker_col, saved_year_col, saved_report_type_col, saved_quarter_col = st.columns(4)
+            selected_companies = []
+            selected_years = []
+            selected_report_types =[]
+            selected_quarters = []
+            with saved_ticker_col:
+                comps = self.global_singleton.file_manager.get_companies()
+                selected_companies = st.multiselect("Company Ticker", comps)
+                pass
+            with saved_year_col:
+                years = self.global_singleton.file_manager.get_years(selected_companies)
+                selected_years = st.multiselect("Year", years)
+                pass
+            with saved_report_type_col:
+                report_types = self.global_singleton.file_manager.get_report_types(selected_companies, selected_years)
+                selected_report_types = st.multiselect("Report Type", report_types)
+                pass
+            with saved_quarter_col:
+                quarters = self.global_singleton.file_manager.get_quarters(selected_companies, selected_years, selected_report_types)
+                selected_quarters = st.multiselect("Quarter (if 10Q)", quarters)
+                pass
+
+            submitted = st.button("Add Report", use_container_width=True, key="existing_submit")
+
+        if sec_submitted:
+            #handle fetching from sec edgar       
+            sec_filing_ticker = sec_filing_ticker.upper()
+            report_type = '10K'
+            report = Report(sec_filing_ticker, sec_filing_year, "10K")
+            file_name = f'{sec_filing_ticker}_{sec_filing_year}.pdf'
+            report.company = sec_filing_ticker
+            report.year = sec_filing_year
+
+            url_query = {
+                "query": {
+                    "query_string": {
+                        "query": f'formType:"10-K" AND ticker:{sec_filing_ticker} AND filedAt:[{sec_filing_year}-01-01 TO {sec_filing_year}-12-31]',
+                    }
+                },
+                "from": "0",
+                "size": "1",
+            }
+
+            #setting up sec-api key
+            queryApi = QueryApi(api_key=sec_api_key)
+
+
+            response = queryApi.get_filings(url_query)
+            url = json.dumps(response["filings"][0]["linkToFilingDetails"], indent=2).replace(
+                '"', ""
+            )
+
+            endpoint = "https://api.sec-api.io/filing-reader"
+            params = {
+                "url": url,
+                "token": sec_api_key,
+                "type": "pdf",
+            }
+
+            response = requests.get(endpoint, params=params)
+
+            tmp_location = os.path.join('/tmp', file_name)
+            with open(tmp_location, 'wb') as f:
+                f.write(response.content)
+
+            if sec_save_report:
+                file_path = self.global_singleton.file_manager.move_file(tmp_location, report.company, report.year, report.report_type)
+                report.file_path = file_path
+            else:
+                report.file_path = tmp_location
+
+            report.save = sec_save_report
+
+            # Check if the report is already in st.session_state.reports
+            if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
+                st.session_state.reports.append(report)
+            elif len(st.session_state.reports) >= 10:
+                st.warning(f"Failed to add report '{uploaded_file.name}', maximum number of reports (10) reached")
+            
+            self.clear_uploaded_files()
 
         # file(s) submitted
         if submitted:
@@ -196,9 +272,7 @@ class SessionRenderer:
                     self.clear_uploaded_files()
                 else:
                     st.warning("Failed to add from uploaded reports: Missing report info")
-
-
-
+            
             # handle reports that were added from saved reports
             if selected_companies:
                 for selected_company in selected_companies:
