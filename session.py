@@ -97,7 +97,7 @@ class Session:
     def init_simple_retriever(self):
         print("initializing simple retriever strategy")
         simple_retriever = SimpleRetrieverStrategy(k=self.k)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([simple_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init reranker retriever strategy """
     def init_reranker_retriever(self, cross_encoder=None):
@@ -105,13 +105,13 @@ class Session:
         if cross_encoder == None:
             raise Exception("Tried to initailize Reranker strategy without a cross encoder")
         reranker_retriever = ReRankerRetrieverStrategy(cross_encoder=cross_encoder, k=self.k, init_k=self.k_i)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([reranker_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init random retriever strategy """
     def init_random_retriever(self):
         print("initializing Reranker retriever strategy")
         stochastic_retriever = StochasticRetrieverStrategy(k=self.k, fetch_k=self.k_i)
-        self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter"])
+        self.retriever_strategy_obj = CompositeRetrieverStrategy([stochastic_retriever], ["company", "year", "report type", "quarter", "page"])
 
     """ Init Simple chain """
     def init_simple_chain(self, index_generator, llm, isllama=False):
