@@ -55,7 +55,7 @@ class BenchmarkEvalRenderer:
         qae_list = self.get_qae_list()
 
         with st.empty():
-            render_session_info(self.session)
+            render_session_info(self.session, self.global_singleton)
         
         status, missing_reports = check_session_valid(self.session.reports, file_manager=self.global_singleton.file_manager)
         ce_exists  = True

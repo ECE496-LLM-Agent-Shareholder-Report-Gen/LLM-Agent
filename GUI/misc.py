@@ -13,43 +13,50 @@ def write_stream(stream):
 
 
 """ render info of the session """
-def render_session_info(session, left_col_size = 0.3, right_col_size = 0.7):
+def render_session_info(session, global_singleton, left_col_size = 0.3, right_col_size = 0.7):
     with st.popover("View Session Info"):
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
-                st.markdown("<b>Retriever Strategy</b>: ", unsafe_allow_html=True)
+                st.markdown("<b>LLM:</b> ", unsafe_allow_html=True)
+            with col2: 
+                st.markdown(global_singleton.llm_model)
+        with st.container():
+            col1, col2 = st.columns([left_col_size, right_col_size])
+            with col1:
+                st.markdown("<b>Word Embeddings:</b> ", unsafe_allow_html=True)
+            with col2: 
+                st.markdown(global_singleton.embeddings_model)
+        with st.container():
+            col1, col2 = st.columns([left_col_size, right_col_size])
+            with col1:
+                st.markdown("<b>Retriever Strategy:</b> ", unsafe_allow_html=True)
             with col2: 
                 st.markdown(session.retrieval_strategy)
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
-                st.markdown("<b>k</b>: ", unsafe_allow_html=True)
+                st.markdown("<b>k:</b> ", unsafe_allow_html=True)
             with col2: 
                 st.markdown(session.k)
         if session.k_i:
             with st.container():
                 col1, col2 = st.columns([left_col_size, right_col_size])
                 with col1:
-                    st.markdown("<b>k_i</b>: ", unsafe_allow_html=True)
+                    st.markdown("<b>k_i:</b> ", unsafe_allow_html=True)
                 with col2: 
                     st.markdown(session.k_i)
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
-                st.markdown("<b>LLM Chain</b>: ", unsafe_allow_html=True)
+                st.markdown("<b>LLM Chain:</b> ", unsafe_allow_html=True)
             with col2: 
                 st.markdown(session.llm_chain)
+       
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:
-                st.markdown("<b>Memory Enabled</b>: ", unsafe_allow_html=True)
-            with col2: 
-                st.markdown(session.memory_enabled)
-        with st.container():
-            col1, col2 = st.columns([left_col_size, right_col_size])
-            with col1:
-                st.markdown("<b>Reports</b>: ", unsafe_allow_html=True)
+                st.markdown("<b>Reports:</b> ", unsafe_allow_html=True)
             with col2: 
                 for existing_file in session.reports:
                     container = st.container(border=True)

@@ -276,12 +276,7 @@ class SessionRenderer:
             'description': 'This strategy passes an input to the vector store, it finds k_i documents using the simple retrieval strategy, then re-ranks them using a cross-encoder, and returns k documents to use as context. <u>NOTE: a cross-encoder must be loaded in to use this strategy.</u>',
             'k_i_exists': True
         },
-        {
-            'key': 'PDR',
-            'title': 'Parent Document Retrieval Strategy',
-            'description': 'This strategy uses larger chunks (called parents) and smaller chunks (called children). The similarity search is done on the child chunks, and the parents of the child chunks are retrieved, up to k parent chunks.',
-            'k_i_exists': False
-        },
+
         {
             'key': 'RRS',
             'title': 'Random Retrieval Strategy',
@@ -349,7 +344,6 @@ class SessionRenderer:
             st.session_state.llm_chain = st.selectbox("Choose an LLM Chain", options=strategy_options, key='chain_select')
 
     def render_create(self):
-        st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
             name = st.session_state["name"].strip()

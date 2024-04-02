@@ -168,7 +168,9 @@ class SimpleChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context
 
 
 """ simple """
@@ -251,7 +253,9 @@ class AgentChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context
 
 
 
@@ -348,8 +352,9 @@ class FusionChatbot(Chatbot):
             all_responses.append(final_stream_response)
 
         full_response = "\n\n".join(all_responses)
-
-        return full_response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return full_response, context
 
 
 """ StepbackChatbot """
@@ -484,7 +489,7 @@ class StepbackChatbot(Chatbot):
         # get the matches
         all_matches =  self.sub_query_generator.parse_questions(sub_query_response)
         questions = [match[-1] for match in all_matches]
-        sources = [", ".join(match[:-1]) for match in all_matches]
+        sources = [" ".join(match[:-1]) for match in all_matches]
 
         # answer the broken down questions
         all_streams = []
@@ -534,23 +539,26 @@ class StepbackChatbot(Chatbot):
         sub_query_answers = []
 
         for idx, (stream, sub_query, source) in enumerate(sub_query_responses_streams_question):
-            st.write(f"<b>{idx + 1}. {source} - {sub_query}:</b>", unsafe_allow_html=True)
+            st.markdown(f"<b>{idx + 1}. {source} - {sub_query}:</b>", unsafe_allow_html=True)
             sub_query_answer = Gmisc.write_stream(stream)
             sub_query_answers.append(f"{sub_query_answer}")
             all_responses.append(f"{idx + 1}. {source} - {sub_query}\n\n{sub_query_answer}")
 
         # get final result
         if len(sub_queries) == 1:
+            context = self.retriever_strategy.get_recent_context()
+            self.retriever_strategy.clear_recent_context()
             # only one sub query, treat is as the final result
-            return "\n\n".join(all_responses)
+            return "\n\n".join(all_responses), context
         final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
         final_response = Gmisc.write_stream(final_stream)
 
         all_responses.append(final_response)
 
         full_response = "\n\n".join(all_responses)
-
-        return full_response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return full_response, context
 
 
 
@@ -673,4 +681,6 @@ class SimpleStepbackChatbot(Chatbot):
         self.retriever_strategy.set_skip(skip)
         stream = self.stream(question)
         response = Gmisc.write_stream(stream)
-        return response
+        context = self.retriever_strategy.get_recent_context()
+        self.retriever_strategy.clear_recent_context()
+        return response, context

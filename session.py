@@ -293,8 +293,8 @@ class ChatSession(Session):
             self.conversation_history = conversation_history
             
 
-    def add_to_conversation(self, question=None, answer=None, replays=0):
-        qa = QA(question, answer, replays=replays)
+    def add_to_conversation(self, question=None, answer=None, replays=0, **kwargs):
+        qa = QA(question, answer, replays=replays, **kwargs)
         if not isinstance(self.conversation_history, list):
             self.conversation_history = []
         self.conversation_history.append(qa)
@@ -393,9 +393,10 @@ class BenchmarkSession(Session):
 """ QA
 class that represents a question and an answer """
 class QA:
-    def __init__(self, question, answer, replays=0):
+    def __init__(self, question, answer, context=None, replays=0):
         self.question = question
         self.answer = answer
+        self.context = context
         self.replays = replays
 
     def encode(self):

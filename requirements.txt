@@ -1,14 +1,14 @@
 accelerate==0.23.0
 aenum==3.1.15
-aiohttp==3.9.3
+aiohttp==3.7.4.post0
 aiosignal==1.3.1
 altair==5.2.0
 annotated-types==0.5.0
 anyio==3.7.1
 asgiref==3.7.2
 asttokens==2.4.0
-async-timeout==4.0.3
-attrs==23.1.0
+async-timeout==3.0.1
+attrs==23.2.0
 backcall==0.2.0
 backoff==2.2.1
 bcrypt==4.0.1
@@ -21,7 +21,7 @@ bs4==0.0.2
 build==1.0.3
 cachetools==5.3.2
 certifi==2023.7.22
-chardet==5.2.0
+chardet==4.0.0
 charset-normalizer==3.2.0
 chroma-hnswlib==0.7.3
 chromadb==0.4.22
@@ -77,9 +77,9 @@ h2==4.1.0
 hf_transfer==0.1.3
 hpack==4.0.0
 htbuilder==0.6.2
-httpcore==0.18.0
+httpcore==1.0.5
 httptools==0.6.0
-httpx==0.25.0
+httpx==0.27.0
 huggingface-hub==0.20.3
 humanfriendly==10.0
 hyperframe==6.0.1
@@ -134,6 +134,7 @@ llama-index-vector-stores-chroma==0.1.3
 llama-parse==0.3.4
 llama_cpp_python==0.2.25
 llamaindex-py-client==0.1.13
+llvmlite==0.42.0
 loguru==0.6.0
 lxml==4.9.3
 Markdown==3.5.2
@@ -153,6 +154,7 @@ mypy-protobuf==3.4.0
 nest-asyncio==1.5.8
 networkx==3.1
 nltk==3.8.1
+numba==0.59.1
 numexpr==2.8.5
 numpy==1.26.2
 nvidia-cublas-cu11==11.10.3.66
@@ -180,6 +182,7 @@ nvidia-nvjitlink-cu12==12.2.140
 nvidia-nvtx-cu11==11.7.91
 nvidia-nvtx-cu12==12.1.105
 oauthlib==3.2.2
+ollama==0.1.8
 onnxruntime==1.17.0
 openai==1.10.0
 opentelemetry-api==1.22.0
@@ -195,6 +198,7 @@ opentelemetry-sdk==1.22.0
 opentelemetry-semantic-conventions==0.43b0
 opentelemetry-util-http==0.43b0
 orjson==3.9.15
+outcome==1.3.0.post0
 overrides==7.4.0
 packaging==23.2
 pandas==2.1.1
@@ -228,6 +232,7 @@ PyPDF2==3.0.1
 PyPika==0.48.9
 pyproject_hooks==1.0.0
 pyreadline3==3.4.1
+PySocks==1.7.1
 python-dateutil==2.8.2
 python-dotenv==1.0.0
 python-magic==0.4.27
@@ -247,12 +252,16 @@ rsa==4.9
 safetensors==0.4.2
 scikit-learn==1.3.1
 scipy==1.11.3
+sec-api==1.0.17
+secedgar==0.5.0
+selenium==4.19.0
 sentence-transformers==2.3.1
 sentencepiece==0.1.99
 shellingham==1.5.4
 six==1.16.0
 smmap==5.0.1
 sniffio==1.3.0
+sortedcontainers==2.4.0
 soupsieve==2.5
 SQLAlchemy==2.0.20
 st-annotated-text==4.0.1
@@ -266,6 +275,7 @@ streamlit-extras==0.4.0
 streamlit-faker==0.0.3
 streamlit-image-coordinates==0.1.6
 streamlit-keyup==0.2.3
+streamlit-pdf-viewer==0.0.10
 streamlit-toggle-switch==1.0.2
 streamlit-vertical-slider==2.5.5
 sympy==1.12
@@ -285,6 +295,8 @@ tornado==6.3.3
 tqdm==4.66.1
 traitlets==5.11.2
 transformers==4.38.1
+trio==0.25.0
+trio-websocket==0.11.1
 triton==2.2.0
 typer==0.9.0
 types-protobuf==4.24.0.2
@@ -306,6 +318,7 @@ websocket-client==1.7.0
 websockets==11.0.3
 widgetsnbextension==4.0.9
 wrapt==1.15.0
+wsproto==1.2.0
 xxhash==3.3.0
 yarl==1.9.2
 zipp==3.17.0

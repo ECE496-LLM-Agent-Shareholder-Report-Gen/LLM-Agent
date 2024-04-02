@@ -9,7 +9,6 @@ if not "global_singleton" in st.session_state:
     st.session_state["global_singleton"] = global_singleton
 else: 
     global_singleton = st.session_state["global_singleton"]
-st.session_state["new_benchmark_session"] = True
 
 navbar(global_singleton)
 # Main Content

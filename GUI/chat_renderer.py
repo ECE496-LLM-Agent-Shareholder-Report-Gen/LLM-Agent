@@ -26,6 +26,7 @@ class ChatRenderer:
             self.render_conversation()
         with tab2:
             self.render_pdf()
+        self.render_question()
 
     def download_conversation_history(self):
         conv_history = [qa.encode() for qa in self.session.conversation_history]
@@ -35,11 +36,11 @@ class ChatRenderer:
     def render_header(self):
         st.title(self.session.name)
         with st.empty():
-            render_session_info(self.session)
+            render_session_info(self.session, self.global_singleton)
 
         self.download_conversation_history()
 
-
+    """ render conversation """
     def render_conversation(self):
         # Initialize chat history
         with st.chat_message("ai"):
@@ -60,6 +61,26 @@ class ChatRenderer:
         if not self.session_valid:
             st.warning(f"The current session is no longer valid because of the following missing reports: {self.missing_reports}. You can view this conversation's history but you can no longer ask questions in the current session.")
 
+        
+        if replay and replay_q:
+             # Display user message in chat message container
+            with st.chat_message("user"):
+                st.markdown(replay_q.question)
+            if not self.session.initialized:
+                with st.spinner("Loading session..."):
+                    isllama = "llama" in self.global_singleton.llm_model.lower()
+                    self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
+            with st.chat_message("ai"):
+                replays = replay_q.replays
+                if replays == None:
+                    replays = 0
+                full_response, context = self.session.chatbot.st_render(replay_q.question, replays+1)
+                full_response = full_response
+                self.session.add_to_conversation(replay_q.question, full_response, replays+1, context=context)
+                st.rerun()
+
+    """ render question input """
+    def render_question(self):
         # Accept user input
         placeholder_text = "Ask a question"
         question = st.chat_input(placeholder_text, disabled=not self.session_valid)
@@ -73,34 +94,40 @@ class ChatRenderer:
                 st.markdown(question)
             with st.chat_message("ai"):
                 #full_response = self.session.chatbot.invoke(question)
-                full_response = self.session.chatbot.st_render(question)
-                self.session.add_to_conversation(question, full_response)
-                st.rerun()
-        if replay and replay_q:
-             # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(replay_q.question)
-            with st.chat_message("ai"):
-                replays = replay_q.replays
-                if replays == None:
-                    replays = 0
-                full_response = self.session.chatbot.st_render(replay_q.question, replays+1)
-                full_response = full_response
-                self.session.add_to_conversation(replay_q.question, full_response, replays+1)
+                full_response, context = self.session.chatbot.st_render(question)
+                self.session.add_to_conversation(question, full_response, replays=0, context=context)
                 st.rerun()
 
+    """ render pdf and context """
     def render_pdf(self):
         report = None
+        report_name_dict = {}
         for existing_file in self.session.reports:
             if existing_file.quarter:
                 name = f"{existing_file.company} {existing_file.year} {existing_file.quarter} {existing_file.report_type}"
             else:
                 name = f"{existing_file.company} {existing_file.year} {existing_file.report_type}"
+            report_name_dict[name] = existing_file.file_path
 
-            if st.button(name):
-                report = existing_file.file_path
-
+        report = st.selectbox("Select Report", report_name_dict.keys())
         if report != None:
-            pdf_viewer(report)
+            h_cont = st.container(height=700)
+            with h_cont:
+                pdf_viewer(report_name_dict[report])
+
+        question_context_dict = {}
+        for idx, qa in enumerate(self.session.conversation_history):
+            question_context_dict[qa.question] = qa.context
+        st.divider()
+        st.markdown("<b>View context for a specified question</b>", unsafe_allow_html=True)
+        question = st.selectbox("Question", question_context_dict.keys())
+        if question != None:
+            if question_context_dict[question] != None:
+                h_cont2 = st.container(height=700)
+                with h_cont2:
+                    st.markdown(question_context_dict[question].replace("$", "\$"))
+            else:
+                st.markdown("No context found for the specified question.")
+
 
 
