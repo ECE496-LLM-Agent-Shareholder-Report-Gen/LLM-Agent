@@ -12,7 +12,9 @@ else:
 
 #navbar(global_singleton)
 #old_llm = global_singleton.llm
-
+st.set_page_config(
+    page_title=f"LLM Agent | Model Selection",
+)
 llm = LLMRenderer(global_singleton)
 llm.render()
 navbar(global_singleton)

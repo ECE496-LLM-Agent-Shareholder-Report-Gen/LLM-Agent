@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 import pandas as pd
+import altair as alt
 
 from GUI.misc import check_session_valid, render_session_info
 from cross_encode import compute_score
@@ -142,7 +143,12 @@ class BenchmarkEvalRenderer:
         st.subheader("Similarity Scores", divider="grey")
         st.markdown(f"<b>Average: </b> {average_str}", unsafe_allow_html=True)
         if num_calc != 0:
-            st.line_chart(df, x="Q&A", y="Similarity Score")
+            chart = alt.Chart(df).mark_bar().encode(
+                x=alt.X('Q&A:O', axis=alt.Axis(title='Q&A',labelAngle=0)),
+                y=alt.Y('Similarity Score:Q', axis=alt.Axis(title='Similarity Score')),
+            )
+            st.altair_chart(chart, use_container_width=True)
+            # st.line_chart(df, x="Q&A", y="Similarity Score")
 
     """ Render a single QAE box, without the title """
     def render_qae_box(self, question=None, expected=None, answer=None, similarity_score=None, response_time=None, cutoff=70, col1_width=0.2, col2_witdh=0.8):

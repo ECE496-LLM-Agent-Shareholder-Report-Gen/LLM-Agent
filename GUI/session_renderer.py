@@ -218,7 +218,7 @@ class SessionRenderer:
 
             response = requests.get(endpoint, params=params)
 
-            tmp_location = os.path.join('/tmp', file_name)
+            tmp_location = os.path.join('./tmp', file_name)
             with open(tmp_location, 'wb') as f:
                 f.write(response.content)
 
@@ -253,7 +253,7 @@ class SessionRenderer:
                     else:
                         report = Report(company_ticker.upper(), year, report_type)
 
-                    tmp_location = os.path.join('/tmp', uploaded_file.name)
+                    tmp_location = os.path.join('./tmp', uploaded_file.name)
                     with open(tmp_location, 'wb') as out:
                         out.write(uploaded_file.getvalue())
                     if save_report:

@@ -25,10 +25,10 @@ class ChatRenderer:
         self.render_header()
         tab1, tab2 = st.tabs(["Conversation", "PDFs"])
         with tab1:
-            self.render_conversation()
+            h_cont = self.render_conversation()
+        self.render_question(h_cont)
         with tab2:
             self.render_pdf()
-        self.render_question()
 
     def download_conversation_history(self):
         conv_history = [qa.encode() for qa in self.session.conversation_history]
@@ -46,10 +46,10 @@ class ChatRenderer:
     def render_conversation(self):
         # Initialize chat history
         with stylable_container(key="no_border", css_styles="""
-                                {
+                                div {
                                     border: none;
                                 }"""):
-            h_cont = st.container(height=700, border=None)
+            h_cont = st.container(height=490, border=None)
             with h_cont:
                 with st.chat_message("ai"):
                     st.markdown("What would you like to know?")
@@ -86,25 +86,27 @@ class ChatRenderer:
                         full_response = full_response
                         self.session.add_to_conversation(replay_q.question, full_response, replays+1, context=context)
                         st.rerun()
+        return h_cont
 
     """ render question input """
-    def render_question(self):
+    def render_question(self, h_cont):
         # Accept user input
         placeholder_text = "Ask a question"
         question = st.chat_input(placeholder_text, disabled=not self.session_valid)
-        if question:
-            if not self.session.initialized:
-                with st.spinner("Loading session..."):
-                    isllama = "llama" in self.global_singleton.llm_model.lower()
-                    self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(question)
-            with st.chat_message("ai"):
-                #full_response = self.session.chatbot.invoke(question)
-                full_response, context = self.session.chatbot.st_render(question)
-                self.session.add_to_conversation(question, full_response, replays=0, context=context)
-                st.rerun()
+        with h_cont:
+            if question:
+                if not self.session.initialized:
+                    with st.spinner("Loading session..."):
+                        isllama = "llama" in self.global_singleton.llm_model.lower()
+                        self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
+                # Display user message in chat message container
+                with st.chat_message("user"):
+                    st.markdown(question)
+                with st.chat_message("ai"):
+                    #full_response = self.session.chatbot.invoke(question)
+                    full_response, context = self.session.chatbot.st_render(question)
+                    self.session.add_to_conversation(question, full_response, replays=0, context=context)
+                    st.rerun()
 
     """ render pdf and context """
     def render_pdf(self):
@@ -136,7 +138,7 @@ class ChatRenderer:
         question = st.selectbox("Question", question_context_dict.keys())
         if question != None:
             if question_context_dict[question] != None:
-                h_cont2 = st.container(height=700)
+                h_cont2 = st.container(height=480)
                 with h_cont2:
                     st.markdown(question_context_dict[question].replace("$", "\$"))
             else:

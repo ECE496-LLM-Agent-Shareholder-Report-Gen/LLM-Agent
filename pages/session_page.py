@@ -9,7 +9,9 @@ if not "global_singleton" in st.session_state:
     st.session_state["global_singleton"] = global_singleton
 else: 
     global_singleton = st.session_state["global_singleton"]
-
+st.set_page_config(
+    page_title=f"LLM Agent | Create New Chat Session",
+)
 navbar(global_singleton)
 
 session = SessionRenderer(global_singleton)
