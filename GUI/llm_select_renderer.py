@@ -104,7 +104,7 @@ class LLMRenderer:
         with left_col:
             self.llm_type = st.selectbox("Select your LLM type", options=["None", "LLAMA", "Huggingface", "Openai"])#, key="llm_type")
             if self.llm_type != "None":
-                self.llm_temp = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.1, key="llm_temp_slider")
+                self.llm_temp = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.01, key="llm_temp_slider")
             
         with right_col:
             if self.llm_type == "None":

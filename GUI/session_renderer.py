@@ -100,44 +100,46 @@ class SessionRenderer:
         upload_report, sec_report, existing_report = st.tabs(["Upload Report", "Fetch From SEC EDGAR", "Use Existing Report"])
         
         with upload_report:
-            uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
-            st.markdown('Enter some info about the report')
+            upload_form = st.form(key="u_form", clear_on_submit=True, border=False)
+            with upload_form:
+                uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
+                st.markdown('Enter some info about the report')
 
-            if "company_ticker" not in st.session_state:
-                st.session_state["company_ticker"] = ""
-            if "year" not in st.session_state:
-                st.session_state["year"] = ""
-            if "report_type" not in st.session_state:
-                st.session_state["report_type"] = "10K"
-            if "report_type_other" not in st.session_state:
-                st.session_state["report_type_other"] = ""
-            if "report_quarter" not in st.session_state:
-                st.session_state["report_quarter"] = "Q1"
+                if "company_ticker" not in st.session_state:
+                    st.session_state["company_ticker"] = ""
+                if "year" not in st.session_state:
+                    st.session_state["year"] = ""
+                if "report_type" not in st.session_state:
+                    st.session_state["report_type"] = "10K"
+                if "report_type_other" not in st.session_state:
+                    st.session_state["report_type_other"] = ""
+                if "report_quarter" not in st.session_state:
+                    st.session_state["report_quarter"] = "Q1"
 
-            company_ticker = None
-            year = None
-            report_type = None
-            report_quarter = None
-            report_type_other = None
+                company_ticker = None
+                year = None
+                report_type = None
+                report_quarter = None
+                report_type_other = None
 
-            left_col, right_col = st.columns(2)
-            with left_col:
-                company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
-                report_type_options = ["10K","10Q", "Other"]
-                report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
+                left_col, right_col = st.columns(2)
+                with left_col:
+                    company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
+                    report_type_options = ["10K","10Q", "Other"]
+                    report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
 
 
-            with right_col:
-                year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
-                if report_type == '10Q':
-                    report_quarter_options = ["Q1", "Q2", "Q3"]
-                    report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
-                if report_type == 'Other':
-                    report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
+                with right_col:
+                    year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
+                    if report_type == '10Q':
+                        report_quarter_options = ["Q1", "Q2", "Q3"]
+                        report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
+                    if report_type == 'Other':
+                        report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
 
-            save_report = st.checkbox("Would you like to save the report for future use?", value=True)
+                save_report = st.checkbox("Would you like to save the report for future use?", value=True)
 
-            submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
+                up_submitted = st.form_submit_button("Add Report", use_container_width=True)
 
         
         with sec_report:
@@ -155,7 +157,6 @@ class SessionRenderer:
                 sec_submitted = st.form_submit_button("Add Report", use_container_width=True)
 
         with existing_report:
-            reports = ['AMD 2022 10K', 'AMD 2022 10Q Q1', 'AMD 2022 10Q Q2', 'AMD 2022 10Q Q3', 'INTC 2022 10K', 'INTC 2022 10Q Q1', 'INTC 2022 10Q Q2', 'INTC 2022 10Q Q3']
             saved_ticker_col, saved_year_col, saved_report_type_col, saved_quarter_col = st.columns(4)
             selected_companies = []
             selected_years = []
@@ -237,8 +238,7 @@ class SessionRenderer:
             
             self.clear_uploaded_files()
 
-        # file(s) submitted
-        if submitted:
+        if up_submitted:
             if uploaded_file:
                 report = None
                 if company_ticker and year and report_type:
@@ -277,7 +277,11 @@ class SessionRenderer:
                     self.clear_uploaded_files()
                 else:
                     st.warning("Failed to add from uploaded reports: Missing report info")
-            
+            else:
+                st.warning("No file uploaded.")
+
+        # file(s) submitted
+        if submitted:
             # handle reports that were added from saved reports
             if selected_companies:
                 for selected_company in selected_companies:
@@ -424,35 +428,37 @@ class SessionRenderer:
             submittable = True
             if not name:
                 submittable = False
+                st.error("No session name was given. Please provide a session name")
+
             if submittable:
                 for ses in self.global_singleton.chat_session_manager.sessions:
                     if ses == name:
                         st.error(f"The session name '{name}' is already being used. Please try another name.")
                         submittable = False
-            try:
-                session = ChatSession(name=st.session_state.name,
-                                    #embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                    llm_chain=st.session_state.llm_chain,
-                                    retrieval_strategy=st.session_state.retrieval_strategy,
-                                    reports=st.session_state.reports,
-                                    memory_enabled=st.session_state.memory_enabled,
-                                    k=st.session_state.k,
-                                    k_i=st.session_state.k_i)
-                del st.session_state["reports"]
-                del st.session_state["name"]
-                del st.session_state["memory_enabled"]
-                del st.session_state["llm_chain"]
-                del st.session_state["retrieval_strategy"]
-                del st.session_state["k"]
-                del st.session_state["k_i"]
-                disable_active_session(self.global_singleton)
-                self.global_singleton.chat_session_manager.add_session(session)
-                self.global_singleton.chat_session_manager.set_active_session(session)
-                st.session_state["global_singleton"] = self.global_singleton
-                st.switch_page("pages/chat_page.py")
-            except Exception as e:
-                print(e)
-                st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
+                try:
+                    session = ChatSession(name=st.session_state.name,
+                                        #embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                        llm_chain=st.session_state.llm_chain,
+                                        retrieval_strategy=st.session_state.retrieval_strategy,
+                                        reports=st.session_state.reports,
+                                        memory_enabled=st.session_state.memory_enabled,
+                                        k=st.session_state.k,
+                                        k_i=st.session_state.k_i)
+                    del st.session_state["reports"]
+                    del st.session_state["name"]
+                    del st.session_state["memory_enabled"]
+                    del st.session_state["llm_chain"]
+                    del st.session_state["retrieval_strategy"]
+                    del st.session_state["k"]
+                    del st.session_state["k_i"]
+                    disable_active_session(self.global_singleton)
+                    self.global_singleton.chat_session_manager.add_session(session)
+                    self.global_singleton.chat_session_manager.set_active_session(session)
+                    st.session_state["global_singleton"] = self.global_singleton
+                    st.switch_page("pages/chat_page.py")
+                except Exception as e:
+                    print(e)
+                    st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
 
     def render_create_benchmark(self):
         st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
