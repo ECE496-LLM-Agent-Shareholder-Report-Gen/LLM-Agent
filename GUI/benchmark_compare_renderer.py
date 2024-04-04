@@ -23,7 +23,8 @@ class BenchmarkCompareRenderer:
 
 
     def render_select(self):
-        sessions = self.benchmark_dict.keys()
+        sessions = list(self.benchmark_dict.keys())
+        sessions.sort()
         if len(sessions) > 0:
             st.session_state["selected_sessions"] = st.multiselect("Choose the benchmarks to compare", options=sessions)
         else:

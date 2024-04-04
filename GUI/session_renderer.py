@@ -164,14 +164,17 @@ class SessionRenderer:
             selected_quarters = []
             with saved_ticker_col:
                 comps = self.global_singleton.file_manager.get_companies()
+                comps.sort()
                 selected_companies = st.multiselect("Company Ticker", comps)
                 pass
             with saved_year_col:
                 years = self.global_singleton.file_manager.get_years(selected_companies)
+                years.sort()
                 selected_years = st.multiselect("Year", years)
                 pass
             with saved_report_type_col:
                 report_types = self.global_singleton.file_manager.get_report_types(selected_companies, selected_years)
+                report_types.sort()
                 selected_report_types = st.multiselect("Report Type", report_types)
                 pass
             with saved_quarter_col:
@@ -218,7 +221,7 @@ class SessionRenderer:
 
             response = requests.get(endpoint, params=params)
 
-            tmp_location = os.path.join('./tmp', file_name)
+            tmp_location = os.path.join('/tmp', file_name)
             with open(tmp_location, 'wb') as f:
                 f.write(response.content)
 
@@ -253,7 +256,7 @@ class SessionRenderer:
                     else:
                         report = Report(company_ticker.upper(), year, report_type)
 
-                    tmp_location = os.path.join('./tmp', uploaded_file.name)
+                    tmp_location = os.path.join('/tmp', uploaded_file.name)
                     with open(tmp_location, 'wb') as out:
                         out.write(uploaded_file.getvalue())
                     if save_report:
@@ -461,7 +464,7 @@ class SessionRenderer:
                     st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
 
     def render_create_benchmark(self):
-        st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
+        
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
             try:

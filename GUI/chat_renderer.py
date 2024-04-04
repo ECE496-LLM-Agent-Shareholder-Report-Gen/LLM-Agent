@@ -120,8 +120,9 @@ class ChatRenderer:
             report_name_dict[name] = existing_file.file_path
         col1, col2 = st.columns(2)
         with col1:
-
-            report = st.selectbox("Select Report", report_name_dict.keys())
+            all_reports = list(report_name_dict.keys())
+            all_reports.sort()
+            report = st.selectbox("Select Report", all_reports)
         with col2:
             page = st.number_input("Page number", min_value=1, step=1)
         if report != None:

@@ -13,7 +13,7 @@ def write_stream(stream):
 
 
 """ render info of the session """
-def render_session_info(session, global_singleton, left_col_size = 0.3, right_col_size = 0.7):
+def render_session_info(session, global_singleton, left_col_size = 0.35, right_col_size = 0.65):
     with st.popover("View Session Info"):
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
