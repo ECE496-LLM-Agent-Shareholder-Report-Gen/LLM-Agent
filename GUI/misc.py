@@ -21,6 +21,7 @@ def render_session_info(session, global_singleton, left_col_size = 0.3, right_co
                 st.markdown("<b>LLM:</b> ", unsafe_allow_html=True)
             with col2: 
                 st.markdown(global_singleton.llm_model)
+                #st.markdown(global_singleton.llm)
         with st.container():
             col1, col2 = st.columns([left_col_size, right_col_size])
             with col1:

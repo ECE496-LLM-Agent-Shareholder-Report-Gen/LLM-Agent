@@ -57,8 +57,7 @@ class GlobalSingleton:
     hug_tokenizer = None
     hug_model = None
     hug_pipe = None
-    #test, for updating navbar
-    #navbar = None
+    llm_temp = None
 
     def __new__(cls, content_path='./content/companies', chat_session_path='./saved_sessions.json', benchmark_session_path='./benchmark_session.json'):
         if cls._instance is None:
@@ -89,6 +88,7 @@ class GlobalSingleton:
             cls._instance.hug_tokenizer = None
             cls._instance.hug_model = None
             cls._instance.hug_pipe = None
+            cls._instance.llm_temp = None
             #cls._instance.navbar = None
         # print(cls._instance, cls._instance.llm)
         return cls._instance

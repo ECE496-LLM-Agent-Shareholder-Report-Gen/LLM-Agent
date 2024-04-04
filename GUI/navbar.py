@@ -6,6 +6,7 @@ def disable_active_session(global_singleton):
     st.session_state["compare_active"] = False
     st.session_state["new_chat_session"] = False
     st.session_state["new_benchmark_session"] = False
+    st.session_state["llm_select_active"] = False
     if global_singleton.benchmark_session_manager.active_session:
             global_singleton.benchmark_session_manager.active_session.deinitialize()
             global_singleton.benchmark_session_manager.active_session = None
@@ -188,10 +189,27 @@ def do_benchmark_compare(global_singleton):
 def do_llm_select(global_singleton):
     st.header("LLMs", divider="grey")
     st.markdown(f"LLM: {global_singleton.llm_model}")
+    #st.markdown(f"LLM: {global_singleton.llm}")
     st.markdown(f"Embeddings: {global_singleton.embeddings_model}")
     st.markdown(f"Cross Encoder: {global_singleton.cross_encoder_model}")
-    select_llm = st.button("Load LLMs", use_container_width=True)
+    if not "llm_select_active" in st.session_state:
+        st.session_state["llm_select_active"] = False
+    if st.session_state["llm_select_active"]:
+        with stylable_container(
+                    key="active_llm_select",
+                        css_styles="""
+                            button {
+                                background-color: white;
+                                color: black;
+                            }
+                            """,
+                    ):
+            select_llm = st.button("Load LLMs", use_container_width=True, key="llm_select1")
+    else:
+        select_llm = st.button("Load LLMs", use_container_width=True, key="llm_select1")
     if select_llm:
+        disable_active_session(global_singleton)
+        st.session_state["llm_select_active"] = True
         st.switch_page("pages/model_config_page.py")
 
 

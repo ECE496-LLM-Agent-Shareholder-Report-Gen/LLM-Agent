@@ -13,7 +13,7 @@ import torch
 #def not working might have messed up other parts, if you see this message and need me to fix it back message me on discord - mert
 class LLMRenderer:
     #def __init__(self, global_singleton, llm_path = None, llm_type = None, hug_api_key = None, hug_llm_name = None, opai_api_key = None):
-    def __init__(self, global_singleton,llm_path = "", llm_type = "", hug_api_key = "", hug_llm_name = "", opai_api_key = "", opai_llm_name = "",  dev=False):
+    def __init__(self, global_singleton,llm_path = "", llm_type = "", hug_api_key = "", hug_llm_name = "", opai_api_key = "", opai_llm_name = "",  dev=False,llm_temp = 0.1):
         self.global_singleton = global_singleton
         self.embedding_renderer = self.load_embedding_renderer(global_singleton, _dev=dev)
         self.dev = dev
@@ -24,6 +24,7 @@ class LLMRenderer:
         self.opai_api_key = opai_api_key
         self.opai_llm_name = opai_llm_name
         self.load_button_block = False
+        self.llm_temp = llm_temp
         if "llm_path" not in st.session_state:
             st.session_state["llm_path"] = ""
         if "llm_type" not in st.session_state:
@@ -102,6 +103,9 @@ class LLMRenderer:
         left_col, right_col = st.columns(2)
         with left_col:
             self.llm_type = st.selectbox("Select your LLM type", options=["None", "LLAMA", "Huggingface", "Openai"])#, key="llm_type")
+            if self.llm_type != "None":
+                self.llm_temp = st.slider("Temperature", min_value=0.0, max_value=1.0, value=0.1, step=0.1, key="llm_temp_slider")
+            
         with right_col:
             if self.llm_type == "None":
                 self.load_button_block = True
@@ -155,7 +159,7 @@ class LLMRenderer:
             
     def render_load(self):
         load_llm_button = False
-        load_llm_button = st.button("Load LLM", use_container_width = True, disabled = self.load_button_block)
+        load_llm_button = st.button("Load LLM", use_container_width = True, disabled = self.load_button_block,key="load_llm_button")
         if load_llm_button:
             #for openai
             if self.global_singleton.opai_llm_name is not None:
@@ -163,7 +167,8 @@ class LLMRenderer:
                     st.error("Please enter an OpenAI API key (not set by the user)")
                 else:
                     if check_openai_api_key(self.global_singleton.opai_api_key):
-                        self.global_singleton.llm = load_llm(self.global_singleton)
+                        self.global_singleton.llm_temp = self.llm_temp
+                        self.global_singleton.llm, self.global_singleton.llm_model = load_llm(self.global_singleton)
                         #reset_cache_cuda()
                         st.session_state["global_singleton"].llm = self.global_singleton.llm
                         #load_llm_button = False
@@ -175,7 +180,8 @@ class LLMRenderer:
                     st.error("Please enter a Huggingface API key (not set by the user)")
                 else:
                     if check_hug_key(self.global_singleton.hug_api_key):
-                        self.global_singleton.llm = load_llm(self.global_singleton)
+                        self.global_singleton.llm_temp = self.llm_temp
+                        self.global_singleton.llm, self.global_singleton.llm_model = load_llm(self.global_singleton)
                         
                         #reset_cache_cuda()
                         st.session_state["global_singleton"].llm = self.global_singleton.llm
@@ -184,14 +190,16 @@ class LLMRenderer:
                         st.error("Invalid Huggingface API key")
             else:
                 #reset_cache_cuda(self.global_singleton)
-                self.global_singleton.llm = load_llm(self.global_singleton)
+                self.global_singleton.llm_temp = self.llm_temp
+                self.global_singleton.llm, self.global_singleton.llm_model = load_llm(self.global_singleton)
                 #navbar(self.global_singleton)
                 #print(self.global_singleton.llm)
                 #print("deneme",st.session_state)
                 
                 #reset_cache_cuda()
                 st.session_state["global_singleton"].llm = self.global_singleton.llm
-                st.rerun()
+                
+                #st.rerun()
                 
                 #print("deleting navbar")
                 #del_and_recrate_navbar(self.global_singleton)

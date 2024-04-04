@@ -1,1 +1,1 @@
-{}
+{"test": {"llm_chain": "Simple Chain", "retrieval_strategy": "Simple Retrieval Strategy", "memory_enabled": false, "embeddings_model_name": null, "name": "test", "k": 2, "k_i": 0, "reports": [{"company": "AMD", "year": "2022", "report_type": "10K", "quarter": null, "file_path": "./content/companies/AMD/2022/10K/AMD_2022_10K.pdf", "save": true}], "conversation_history": []}}
