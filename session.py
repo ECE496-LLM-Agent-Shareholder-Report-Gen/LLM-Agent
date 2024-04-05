@@ -16,7 +16,7 @@ a user-LLM interaction """
 class Session:
 
     valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
-    valid_llm_chains = ["Simple Chain", "Fusion Chain", "Stepback Chain", "Simple Stepback Chain", "Agent Chain"]
+    valid_llm_chains = ["One-to-One Chain", "One-to-Many Chain", "One-to-Many Multi-Query Chain", "One-to-Many Multi-Query Stepback Chain", "ReAct Chain"]
 
     def __init__(self,
                  name=None,
@@ -72,15 +72,15 @@ class Session:
         print("############### \n")
         print("loading chain \n")
 
-        if self.llm_chain == "Simple Chain":
+        if self.llm_chain == "One-to-One Chain":
             self.init_simple_chain(index_generator, llm, isllama=isllama)
-        elif self.llm_chain == "Agent Chain":
+        elif self.llm_chain == "ReAct Chain":
             self.init_agent_chain(index_generator, llm, isllama=isllama)
-        elif self.llm_chain == "Fusion Chain":
+        elif self.llm_chain == "One-to-Many Multi-Query Chain":
             self.init_fusion_chain(llm, isllama=isllama)
-        elif self.llm_chain == "Stepback Chain":
+        elif self.llm_chain == "One-to-Many Multi-Query Stepback Chain":
             self.init_stepback_chain(llm, isllama=isllama)
-        elif self.llm_chain == "Simple Stepback Chain":
+        elif self.llm_chain == "One-to-Many Chain":
             self.init_simple_stepback_chain(llm, isllama=isllama)
         else:
             raise Exception("No Chatbot initialized")

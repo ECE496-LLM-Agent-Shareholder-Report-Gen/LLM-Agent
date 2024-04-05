@@ -64,7 +64,7 @@ class ChatRenderer:
                         if replay:
                             replay_q = qa
                     with st.chat_message("ai"):
-                        st.markdown(qa.answer)
+                        st.markdown(qa.answer.replace("\\\\$", "\\$"), unsafe_allow_html=True)
 
                 if not self.session_valid:
                     st.warning(f"The current session is no longer valid because of the following missing reports: {self.missing_reports}. You can view this conversation's history but you can no longer ask questions in the current session.")
@@ -141,7 +141,7 @@ class ChatRenderer:
             if question_context_dict[question] != None:
                 h_cont2 = st.container(height=480)
                 with h_cont2:
-                    st.markdown(question_context_dict[question].replace("$", "\$"))
+                    st.markdown(question_context_dict[question].replace("$", "\$"), unsafe_allow_html=True)
             else:
                 st.markdown("No context found for the specified question.")
 

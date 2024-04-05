@@ -100,18 +100,19 @@ class Chatbot(ABC):
 class SimpleChatbot(Chatbot):
 
     system_message = """
-                You are a financial investment advisor who answers questions
-                about shareholder reports. You will be given a context and will answer the question using that context.
-                """
+You are a financial investment advisor who answers questions
+about shareholder reports. You will be given a context and will answer the question using that context.
+                """.strip()
     instruction = """
-               Context: "{context}"
-                \n\n
-                Question: "{question}"
+Context: "{context}"
+\n\n
+Question: "{question}"
 
-                \n\n
-                Make sure to source where you got the information from.
-                This source should include the company, year, the report type, and page number. This source should ONLY come from the excerpts in the context. Do NOT post any links.
-                """
+\n\n
+Make sure to source where you got the information from. This source should \
+include the company, year, the report type, the quarter if possible, and page \
+number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
+                """.strip()
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
         super().__init__(retriever_strategy, llm, *args, **kwargs)
@@ -264,15 +265,15 @@ class AgentChatbot(Chatbot):
 class FusionChatbot(Chatbot):
 
     result_system_message = """
-        You are a helpful assistant. Answer questions given the context. \
-        Make sure to source where you got information from (given in the context). \
-        This source should include the company, year, the report type, (quarter if \
-        possible) and page number.
+You are a helpful assistant. Answer questions given the context. \
+Make sure to source where you got information from (given in the context). \
+This source should include the company, year, the report type, (quarter if \
+possible) and page number. Do NOT provide any URLs (i.e., https://...).
         """
 
     result_instruction = """
-        Given the context: '{context}'\n\n
-        {question}\n\n
+Given the context: '{context}'\n\n
+{question}\n\n
         """
 
     def __init__(self, retriever_strategy, llm, vectorstores={}, max_k=8, *args, **kwargs):
@@ -361,20 +362,27 @@ class FusionChatbot(Chatbot):
 class StepbackChatbot(Chatbot):
 
     result_system_message = """
-        You are a helpful assistant. Use your previous answers to answer questions. \
-        Be sure to reference the source of the original information as you have done \
-        in your previous answers.
+You are a helpful assistant. You will be given a list of questions and their \
+answers. References to the source where those answers were taken are embedded \
+within the answers themselves. Answer the original question given the list of \
+questions and answers. \n\n \
+Make sure to source where you got the information from. This source should \
+include the company, year, the report type, the quarter if possible, and page \
+number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
         """.strip()
 
     result_instruction = """
-        {question}
+Previous Questions and Answers: [{context}] \
+\n\n\
+Question: "{question}"\
         """.strip()
 
     simple_system_message = """
-        You are a helpful assistant. You will be given a context and will answer the \
-        question using that context. Make sure to source where you got the \
-        information from. This source should include the company, year, the report \
-        type, and page number as reported at the start of the Excerpt.
+You are a helpful assistant. You will be given a context and will answer the \
+question using that context. Make sure to source where you got the \
+information from. This source should include the company, year, the report \
+type, the quarter if possible, and page number as reported at the start of the \
+Excerpt. Do NOT provide any URLs (i.e., https://...).
         """.strip()
 
     simple_instruction = """
@@ -428,6 +436,7 @@ class StepbackChatbot(Chatbot):
 
     def update_chain(self):
         self.simple_prompt = PromptTemplate(template=self.simple_template, input_variables=["question", "context"])
+        self.result_prompt = PromptTemplate(template=self.result_template, input_variables=["question", "context"])
 
         self.simple_chain = (
              { "context": itemgetter("context"),
@@ -444,6 +453,12 @@ class StepbackChatbot(Chatbot):
              | self.parser
         )
 
+        self.result_chain = (
+            self.result_prompt
+            | self.llm
+            | self.parser
+        )
+
 
     def invoke(self, question):
         # get the broken down question
@@ -455,29 +470,15 @@ class StepbackChatbot(Chatbot):
         # answer the broken down questions
         all_responses = self.answer_chain.batch(all_matches)
 
-        temp_mem = [(all_matches[x][-1],all_responses[x]) for x in range(len(all_matches))]
+        temp_mem = [f"Q: {all_matches[x][-1]}\n\nA: {all_responses[x]}" for x in range(len(all_matches))]
+        context = "\n\n".join(temp_mem)
 
 
         if temp_mem == None or len(temp_mem) == 0:
             print("Oops! something went wrong")
             return "N/A"
-        result_template = self.template_formatter.init_template_from_memory(
-            system_message=self.result_system_message,
-            instruction=self.result_instruction,
-            memory=temp_mem
-        )
-        result_prompt =  PromptTemplate(template=result_template, input_variables=["question"])
 
-        result_chain = (
-            {
-             "question": RunnablePassthrough()
-             }
-            | result_prompt
-            | self.llm
-            | self.parser
-        )
-
-        response = result_chain.invoke(question)
+        response = self.result_chain.invoke({"question": question, "context": context})
         if self.memory_active:
             self.update_memory(question, response)
         return response
@@ -499,27 +500,14 @@ class StepbackChatbot(Chatbot):
         return list(zip(all_streams, questions, sources))
 
     def stream_final_response(self, question, sub_queries, responses):
-        temp_mem = list(zip(sub_queries, responses))
-        if temp_mem == None or len(temp_mem) == 0:
+        if sub_queries == None or len(sub_queries) == 0:
             print("Oops! something went wrong")
             return "N/A"
-        result_template = self.template_formatter.init_template_from_memory(
-            system_message=self.result_system_message,
-            instruction=self.result_instruction,
-            memory=temp_mem
-        )
-        result_prompt =  PromptTemplate(template=result_template, input_variables=["question"])
+        st.markdown(f"<b style='display: block;text-align: center;width: 100%;'> {'='*5} FINAL ANSWER {'='*5}</b>\n\n<i>QUESTION: {question}</i>\n\n", unsafe_allow_html=True)
+        temp_mem = [f"Q: {sub_queries[x]}\n\nA: {responses[x]}" for x in range(len(sub_queries))]
+        context = "\n\n".join(temp_mem)
 
-        result_chain = (
-            {
-             "question": RunnablePassthrough()
-             }
-            | result_prompt
-            | self.llm
-            | self.parser
-        )
-
-        return result_chain.stream(question)
+        return self.result_chain.stream({"question": question, "context": context})
 
     """ Render stepback llm chain response """
     def st_render(self, question, skip=0):
@@ -542,7 +530,7 @@ class StepbackChatbot(Chatbot):
             st.markdown(f"<b>{idx + 1}. {source} - {sub_query}:</b>", unsafe_allow_html=True)
             sub_query_answer = Gmisc.write_stream(stream)
             sub_query_answers.append(f"{sub_query_answer}")
-            all_responses.append(f"{idx + 1}. {source} - {sub_query}\n\n{sub_query_answer}")
+            all_responses.append(f"<b>{idx + 1}. {source} - {sub_query}</b>\n\n{sub_query_answer}")
 
         # get final result
         if len(sub_queries) == 1:
@@ -552,7 +540,7 @@ class StepbackChatbot(Chatbot):
             return "\n\n".join(all_responses), context
         final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
         final_response = Gmisc.write_stream(final_stream)
-
+        all_responses.append(f"<b> ===== FINAL ANSWER =====</b>\n\n<i>QUESTION: {question}</i>")
         all_responses.append(final_response)
 
         full_response = "\n\n".join(all_responses)
@@ -567,18 +555,19 @@ class StepbackChatbot(Chatbot):
 """ Simple stepback """
 class SimpleStepbackChatbot(Chatbot):
     simple_system_message = """
-                You are a financial investment advisor who answers questions
-                about shareholder reports. You will be given a context and will answer the question using that context.
-                """
+You are a financial investment advisor who answers questions
+about shareholder reports. You will be given a context and will answer the question using that context.
+                """.strip()
     simple_instruction = """
-               Given the context: "{context}"
-                \n\n
-                {question}
+Given the context: "{context}"
+\n\n
+{question}
 
-                \n\n
-                Make sure to source where you got the information from.
-                This source should include the company, year, the report type, and page number.
-                """
+\n\n
+Make sure to source where you got the information from. This source should \
+include the company, year, the report type, the quarter if possible, and page \
+number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
+                """.strip()
 
     """
     clist = {

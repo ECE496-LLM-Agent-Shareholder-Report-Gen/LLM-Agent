@@ -380,7 +380,7 @@ class SessionRenderer:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=2)
+                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=8)
                 if strat['k_i_exists']:
                     with col2:
                         st.session_state.k_i = st.number_input("Initial number of documents to fetch (k_i)", min_value=0, step=1, value=100)
@@ -393,29 +393,29 @@ class SessionRenderer:
         container = st.container(border=False)
         strategies = [{
             'key': 'SC',
-            'title': 'Simple Chain',
-            'description': 'This input is passed to the language model, and the language model answers it directly.',
-        },
-        {
-            'key': 'A',
-            'title': 'Agent Chain',
-            'description': 'This input is passed to the language model, the language model then breaks the question down into smaller questions to ask about each shareholder report, and answers those questions. The answers to these smaller questions is fed as context to answer the original question',
-        },
-        {
-            'key': 'SbC',
-            'title': 'Stepback Chain',
-            'description': 'This input is passed to the language model, the language model then breaks the question down into smaller questions to ask about each shareholder report, and answers those questions. The answers to these smaller questions is fed as context to answer the original question',
+            'title': 'One-to-One Chain',
+            'description': 'The question is passed to the retriever which queries a single vector store containing all the shareholder reports for the session. The retriever returns a context. The LLM answers the original question using this context.',
         },
         {
             'key': 'SSbC',
-            'title': 'Simple Stepback Chain',
-            'description': 'This input is passed to the language model, the language model passes the question to each shareholder report, combines the context, and uses the context  to answer the  question',
+            'title': 'One-to-Many Chain',
+            'description': 'The question is passed to the retriever which queries every vector store. Each vector store contains at most one shareholder report. The retriever returns a context, and the LLM answers the original question using this context.',
         },
         {
             'key': 'FC',
-            'title': 'Fusion Chain',
-            'description': 'This input is passed to the language model, the language model passes the breaks the question down, and passes the smaller questions to the respective shareholder report. Context is retrieved and used to answer the original question',
+            'title': 'One-to-Many Multi-Query Chain',
+            'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers the original question using this context.',
             'k_i_exists': True
+        },
+        {
+            'key': 'SbC',
+            'title': 'One-to-Many Multi-Query Stepback Chain',
+            'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers each sub query using the context retrieved from that sub query. The LLM answers the original question using the answers from the sub queries.',
+        },
+        {
+            'key': 'A',
+            'title': 'ReAct Chain',
+            'description': 'The LLM answers the question through reasoning and acting. If the LLM needs a context to answer the question, it must reason it out itself, and must invoke the retriever through its actions.',
         }]
         with container:
             for strategy in strategies:
