@@ -33,7 +33,7 @@ Guidelines for contributing to the project. Include information on how to submit
 
 ## License
 
-Information about the project's license.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 
 
