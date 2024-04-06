@@ -124,6 +124,18 @@ class FileManager:
             self.index_name = "index"
         else:
             self.index_name = index_name.replace("/", "_")
+        self.create_directory(path)
+        
+    def create_directory(self, directory_path):
+        # Check if the directory exists
+        if not os.path.exists(directory_path):
+            # Create the directory
+            os.makedirs(directory_path)
+            print(f"Directory '{directory_path}' created successfully.")
+        else:
+            print(f"Directory '{directory_path}' already exists.")
+
+    # Example usage: create a directory named "my_directory"
 
 
     # gets companies using predefined directory structure
@@ -291,7 +303,6 @@ class SessionManager:
     
     def load(self):
         ss_list = {}
-        # print("loading sessions...")
         self.sessions = {}
         try:
             with open(self.save_file, "r") as json_file:

@@ -213,11 +213,16 @@ class Session:
                 vectorstore = None
             if vectorstore == None:
                 vectorstore = self.generate_vectorstore(index_generator, embeddings, report)
+            if not report.company in self.vectorstores:
+                self.vectorstores[report.company] = {}
+            if not report.year in self.vectorstores[report.company]:
+                self.vectorstores[report.company][report.year] = {}
             if report.quarter:
-                dict_vectorstore = { report.year: { report.report_type: { report.quarter: vectorstore } } }
+                if not report.report_type in self.vectorstores[report.company][report.year]:
+                    self.vectorstores[report.company][report.year][report.report_type] = {}
+                self.vectorstores[report.company][report.year][report.report_type][report.quarter] = vectorstore
             else:
-                dict_vectorstore = { report.year: { report.report_type:  vectorstore } }
-            self.vectorstores[report.company] = dict_vectorstore
+                self.vectorstores[report.company][report.year][report.report_type] = vectorstore
 
 
     def dict_to_list(self, d, parent_keys=[]):

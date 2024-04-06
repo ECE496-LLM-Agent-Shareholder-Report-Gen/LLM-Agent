@@ -36,7 +36,6 @@ class IndexGenerator:
             documents[i].metadata["company"] = company
             documents[i].metadata["year"] = year
             documents[i].metadata["report type"] = report_type
-            print("metadata: ", documents[i].metadata)
             if "page" in documents[i].metadata:
                 documents[i].metadata["page"] += 1
             if quarter:

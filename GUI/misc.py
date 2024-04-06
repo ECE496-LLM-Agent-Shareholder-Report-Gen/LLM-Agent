@@ -7,7 +7,7 @@ def write_stream(stream):
     result = ""
     container = st.empty()
     for chunk in stream:
-        result += chunk.replace("$", "\\$")
+        result += chunk.replace("$", "\$")
         container.write(result, unsafe_allow_html=True)
     return result
 
@@ -60,22 +60,11 @@ def render_session_info(session, global_singleton, left_col_size = 0.35, right_c
                 st.markdown("<b>Reports:</b> ", unsafe_allow_html=True)
             with col2: 
                 for existing_file in session.reports:
-                    container = st.container(border=True)
-                    with container:
-                        if existing_file.quarter:
-                            ticker_col, report_type_col, year_col, quarter_col = st.columns(4)
-                        else:
-                            ticker_col, report_type_col, year_col = st.columns(3)
+                    if existing_file.quarter:
+                        st.markdown(f"<b>{existing_file.company} {existing_file.year} {existing_file.report_type} {existing_file.quarter}</b>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<b>{existing_file.company} {existing_file.year} {existing_file.report_type}</b>", unsafe_allow_html=True)
 
-                        with ticker_col:
-                            st.markdown(f"{existing_file.company}")
-                        with report_type_col:
-                            st.markdown(f"{existing_file.report_type}", unsafe_allow_html=True)
-                        with year_col:
-                            st.markdown(f"{existing_file.year}")
-                        if  existing_file.quarter:
-                            with quarter_col:
-                                st.markdown(f"{existing_file.quarter}")
 
 
 """ check if session is still valid """
