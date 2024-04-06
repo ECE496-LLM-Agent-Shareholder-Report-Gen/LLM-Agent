@@ -104,9 +104,12 @@ class ChatRenderer:
                     st.markdown(question)
                 with st.chat_message("ai"):
                     #full_response = self.session.chatbot.invoke(question)
-                    full_response, context = self.session.chatbot.st_render(question)
-                    self.session.add_to_conversation(question, full_response, replays=0, context=context)
-                    st.rerun()
+                    try:
+                        full_response, context = self.session.chatbot.st_render(question)
+                        self.session.add_to_conversation(question, full_response, replays=0, context=context)
+                        st.rerun()
+                    except:
+                        st.error("Oops! Somewthing went wrong.")
 
     """ render pdf and context """
     def render_pdf(self):
