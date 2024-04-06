@@ -27,7 +27,6 @@ Instructions on how to install the project. Include any prerequisites, step-by-s
 
 Guide on how to use the project. Include code examples, screenshots, or any other relevant information to help users understand how to interact with the project.
 
-## Contributing
 
 ## Contributing
 
