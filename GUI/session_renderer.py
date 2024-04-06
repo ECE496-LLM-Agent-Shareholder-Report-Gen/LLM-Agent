@@ -206,7 +206,6 @@ class SessionRenderer:
 
             response = queryApi.get_filings(url_query)
             ok = len(response['filings']) > 0
-            print(ok)
             if ok:
                 url = json.dumps(response["filings"][0]["linkToFilingDetails"], indent=2).replace(
                     '"', ""
