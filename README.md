@@ -21,8 +21,35 @@ List of key features the project offers.
 
 ## Installation
 
-Instructions on how to install the project. Include any prerequisites, step-by-step installation guide, and troubleshooting tips.
-
+1. Ensure you have Python 3.x installed on your system.
+2. Clone the repository to your local machine:
+   ```console
+   git clone https://github.com/ECE496-LLM-Agent-Shareholder-Report-Gen/LLM-Agent.git
+   ```
+3. Navigate to the project directory.
+4. (Optional) Create and activate a virtual environment to isolate your project dependencies:
+   ```console
+   python3 -m venv venv
+   source venv/bin/activate # On Linux/Mac
+   .\venv\Scripts\activate # On Windows
+   ```
+5. Install the required dependencies using pip:
+   ```console
+   pip install -r requirements.txt
+   ```
+6. Set your Ollama environment variable:
+   ```console
+   export OLLAMA_MODELS=/groups/acmogrp/Large-Language-Model-Agent/language_models/ollama
+   ```
+7. Navigate to ollama folder and run Ollama server:
+   ```console
+   ./ollama-linux-amd64 serve&
+   ```
+8. Navigate to the GUI folder and run streamlit app:
+   ```console
+   cd GUI
+   streamlit run streamlit_app.py
+   ```
 ## Usage
 
 Guide on how to use the project. Include code examples, screenshots, or any other relevant information to help users understand how to interact with the project.
