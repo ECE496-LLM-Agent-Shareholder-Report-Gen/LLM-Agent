@@ -45,9 +45,8 @@ List of key features the project offers.
    ```console
    ./ollama-linux-amd64 serve&
    ```
-8. Navigate to the GUI folder and run streamlit app:
+8. Run streamlit app:
    ```console
-   cd GUI
    streamlit run streamlit_app.py
    ```
 ## Usage
