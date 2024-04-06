@@ -14,13 +14,6 @@ Capstone project for ECE496 at the University of Toronto.
 - [Contributing](#contributing)
 - [License](#license)
 
-## Introduction
-
-Brief introduction to the project, its purpose, and any important context.
-
-## Features
-
-List of key features the project offers.
 
 ## Installation
 
@@ -52,9 +45,6 @@ List of key features the project offers.
    ```console
    streamlit run streamlit_app.py
    ```
-## Usage
-
-Guide on how to use the project. Include code examples, screenshots, or any other relevant information to help users understand how to interact with the project.
 
 
 ## Contributing
