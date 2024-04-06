@@ -160,10 +160,9 @@ with the report title the step-back question can be answered with.\n
     def parse_questions(self, unparsed_questions):
         self.fusion_output = unparsed_questions
         quarter_pattern = r"(\w+)[\\_]+(\d+)[\\_]+(10Q|10q)[\\_]+(Q1|Q2|Q3)\s--\s(.+)\?"
-        yearly_pattern = r"(\w+)[\\_]+(\d+)[\\_]+(.+)\s--\s(.+)\?"
+        yearly_pattern = r"(\w+)[\\_]+(\d+)[\\_]+([\da-zA-Z]+)\s--\s(.+)\?"
         quarter_matches = re.findall(quarter_pattern, unparsed_questions)
         yearly_matches = re.findall(yearly_pattern, unparsed_questions)
-
         # in case the above parsing doesn't work...
         # create the matches ourselves (company, year, reportType, quarter, question)
         leftovers = []

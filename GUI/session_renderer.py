@@ -241,7 +241,6 @@ class SessionRenderer:
         # file(s) submitted
         if upload_submitted:
             if uploaded_file:
-                print("upload started")
                 report = None
                 if company_ticker and year and report_type:
                     if report_type == '10Q':
@@ -289,7 +288,7 @@ class SessionRenderer:
                     for selected_year in selected_years:
                         for selected_report_type in selected_report_types:
 
-                            if '10Q' in selected_report_types:
+                            if selected_report_type == '10Q':
                                 if selected_quarters:
                                     for quarter in selected_quarters:
                                         file_path = self.global_singleton.file_manager.get_file_path(selected_company, selected_year, selected_report_type, quarter)
@@ -323,20 +322,23 @@ class SessionRenderer:
             container = st.container(border=True)
             with container:
                 loc_col, ticker_col, report_type_col, year_col, quarter_col, close_col = st.columns(6)
-                with loc_col:
-                    file_name = os.path.basename(existing_file.file_path)
-                    st.markdown(f"<b>{file_name}</b>", unsafe_allow_html=True)
-                with ticker_col:
-                    st.write(f"Company: {existing_file.company}")
-                with report_type_col:
-                    st.markdown(f"Report Type: {existing_file.report_type}", unsafe_allow_html=True)
-                with year_col:
-                    st.markdown(f"Year: {existing_file.year}")
-                if  existing_file.quarter:
-                    with quarter_col:
-                        st.markdown(f"Quarter: {existing_file.quarter}")
-                with close_col:
-                    st.button(":x:", key=existing_file.file_path, on_click=self.remove_report, args=[existing_file.file_path])
+                try:
+                    with loc_col:
+                        file_name = os.path.basename(existing_file.file_path)
+                        st.markdown(f"<b>{file_name}</b>", unsafe_allow_html=True)
+                    with ticker_col:
+                        st.write(f"Company: {existing_file.company}")
+                    with report_type_col:
+                        st.markdown(f"Report Type: {existing_file.report_type}", unsafe_allow_html=True)
+                    with year_col:
+                        st.markdown(f"Year: {existing_file.year}")
+                    if  existing_file.quarter:
+                        with quarter_col:
+                            st.markdown(f"Quarter: {existing_file.quarter}")
+                    with close_col:
+                        st.button(":x:", key=existing_file.file_path, on_click=self.remove_report, args=[existing_file.file_path])
+                except:
+                    existing_files.remove(existing_file)
 
 
 
@@ -431,8 +433,6 @@ class SessionRenderer:
                 st.error("No session name was given. Please provide a session name")
 
             if submittable:
-                print(name)
-                print(self.global_singleton.chat_session_manager.sessions)
                 for ses in self.global_singleton.chat_session_manager.sessions:
                     if ses == name:
                         submittable = False
@@ -459,7 +459,6 @@ class SessionRenderer:
                         st.session_state["global_singleton"] = self.global_singleton
                         st.switch_page("pages/chat_page.py")
                     except Exception as e:
-                        print(e)
                         st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
                 else:
                     st.error(f"The session name '{name}' is already being used. Please try another name.")
@@ -493,5 +492,4 @@ class SessionRenderer:
                 st.session_state["global_singleton"] = self.global_singleton
                 st.switch_page("pages/benchmark_eval_page.py")
             except Exception as e:
-                print(e)
                 st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")

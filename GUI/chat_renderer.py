@@ -102,14 +102,14 @@ class ChatRenderer:
                 # Display user message in chat message container
                 with st.chat_message("user"):
                     st.markdown(question)
-                with st.chat_message("ai"):
-                    #full_response = self.session.chatbot.invoke(question)
-                    try:
-                        full_response, context = self.session.chatbot.st_render(question)
-                        self.session.add_to_conversation(question, full_response, replays=0, context=context)
-                        st.rerun()
-                    except:
-                        st.error("Oops! Somewthing went wrong.")
+                try:
+                    with st.chat_message("ai"):
+                        #full_response = self.session.chatbot.invoke(question)
+                            full_response, context = self.session.chatbot.st_render(question)
+                            self.session.add_to_conversation(question, full_response, replays=0, context=context)
+                            st.rerun()
+                except Exception as e:
+                    st.error("Oops! Somewthing went wrong.")
 
     """ render pdf and context """
     def render_pdf(self):
@@ -136,7 +136,16 @@ class ChatRenderer:
 
         question_context_dict = {}
         for idx, qa in enumerate(self.session.conversation_history):
-            question_context_dict[qa.question] = qa.context
+            if qa.question in question_context_dict:
+                i = 1
+                qu = f"{qa.question} ({i})"
+                while qu in question_context_dict:
+                    i += 1
+                    qu = f"{qa.question} ({i})"
+                question_context_dict[qu] = qa.context
+
+            else:
+                question_context_dict[qa.question] = qa.context
         st.divider()
         st.markdown("<b>View context for a specified question</b>", unsafe_allow_html=True)
         question = st.selectbox("Question", question_context_dict.keys())
@@ -144,7 +153,7 @@ class ChatRenderer:
             if question_context_dict[question] != None:
                 h_cont2 = st.container(height=480)
                 with h_cont2:
-                    st.markdown(question_context_dict[question].replace("$", "\$"), unsafe_allow_html=True)
+                    st.markdown(question_context_dict[question].replace("$", "\\$"), unsafe_allow_html=True)
             else:
                 st.markdown("No context found for the specified question.")
 

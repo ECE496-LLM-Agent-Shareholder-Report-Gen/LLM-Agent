@@ -79,14 +79,12 @@ class EmbeddingRenderer:
                 else:
                     if check_openai_api_key(self.global_singleton.opai_api_key):
                         self.global_singleton.embeddings, self.global_singleton.embeddings_model = load_word_embedding(self.global_singleton)
-                        print("girdi embedding openai ya:", self.global_singleton.embeddings)
                     else:
                         st.error("Invalid OpenAI API key")
             #for huggingface
             elif self.global_singleton.hug_embedding_name is not None:
                     self.global_singleton.embeddings, self.global_singleton.embeddings_model = load_word_embedding(self.global_singleton)
             else:
-                print("we def dont see this normally")
                 st.error("managed to break the app!")
                 self.global_singleton.embeddings, self.global_singleton.embeddings_model = load_word_embedding(self.global_singleton)
                     

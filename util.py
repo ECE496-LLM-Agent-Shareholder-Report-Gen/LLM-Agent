@@ -291,7 +291,6 @@ class SessionManager:
     
     def load(self):
         ss_list = {}
-        # print("loading sessions...")
         self.sessions = {}
         try:
             with open(self.save_file, "r") as json_file:

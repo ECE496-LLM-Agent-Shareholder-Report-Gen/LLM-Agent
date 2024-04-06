@@ -111,7 +111,7 @@ Question: "{question}"
 \n\n
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
+number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
                 """.strip()
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
@@ -268,7 +268,7 @@ class FusionChatbot(Chatbot):
 You are a helpful assistant. Answer questions given the context. \
 Make sure to source where you got information from (given in the context). \
 This source should include the company, year, the report type, (quarter if \
-possible) and page number. Do NOT provide any URLs (i.e., https://...).
+possible) and page number. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
         """
 
     result_instruction = """
@@ -368,7 +368,7 @@ within the answers themselves. Answer the original question given the list of \
 questions and answers. \n\n \
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
+number as reported in the answer. Do NOT provide any URLs (i.e., https://...). If there are no previous questions and answers, say 'No context was given'.
         """.strip()
 
     result_instruction = """
@@ -382,7 +382,7 @@ You are a helpful assistant. You will be given a context and will answer the \
 question using that context. Make sure to source where you got the \
 information from. This source should include the company, year, the report \
 type, the quarter if possible, and page number as reported at the start of the \
-Excerpt. Do NOT provide any URLs (i.e., https://...).
+Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
         """.strip()
 
     simple_instruction = """
@@ -540,7 +540,7 @@ Excerpt. Do NOT provide any URLs (i.e., https://...).
             return "\n\n".join(all_responses), context
         final_stream = self.stream_final_response(question, sub_queries, sub_query_answers)
         final_response = Gmisc.write_stream(final_stream)
-        all_responses.append(f"<b> ===== FINAL ANSWER =====</b>\n\n<i>QUESTION: {question}</i>")
+        all_responses.append(f"<b style='display: block;text-align: center;width: 100%;'>===== FINAL ANSWER =====</b>\n\n<i>QUESTION: {question}</i>")
         all_responses.append(final_response)
 
         full_response = "\n\n".join(all_responses)
@@ -566,7 +566,7 @@ Given the context: "{context}"
 \n\n
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported in the answer. Do NOT provide any URLs (i.e., https://...).
+number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
                 """.strip()
 
     """

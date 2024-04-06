@@ -7,7 +7,7 @@ def write_stream(stream):
     result = ""
     container = st.empty()
     for chunk in stream:
-        result += chunk.replace("$", "\\$")
+        result += chunk.replace("$", "\$")
         container.write(result, unsafe_allow_html=True)
     return result
 

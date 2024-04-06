@@ -16,7 +16,6 @@ def disable_active_session(global_singleton):
 
 """ handle the user clicking a link """
 def link_clicked(session, global_singleton, is_chat_session=True):
-    print("setting active session to ", session.name)
     disable_active_session(global_singleton)
     if is_chat_session:
         global_singleton.chat_session_manager.active_session = session
@@ -27,7 +26,6 @@ def link_clicked(session, global_singleton, is_chat_session=True):
 
 """ delete session from list """
 def del_session(session, global_singleton, is_chat_session=True):
-    print("deleting session: ", session.name)
     if is_chat_session:
         del global_singleton.chat_session_manager.sessions[session.name]
         global_singleton.chat_session_manager.save()
@@ -218,7 +216,6 @@ def navbar(global_singleton):
     # Sidebar
     with st.sidebar:
         #st.rerun()
-        #print("girid")
         do_chat_sessions(global_singleton)
         do_benchmarks(global_singleton)
         do_benchmark_compare(global_singleton)
