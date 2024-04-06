@@ -1,6 +1,12 @@
-# Project Name
+# LLM Agent for Shareholder/Regulator Report Generation
 
-Brief description of the project.
+Capstone project for ECE496 at the University of Toronto.
+
+## Created by:
+- Sebastion Czyrny (sebastian.czyrny@mail.utoronto.ca)
+- Danny Ahmad (danial.ahmad@mail.utoronto.ca)
+- David Marcovitch (david.marcovitch@mail.utoronto.ca)
+- Mert Okten (mert.okten@mail.utoronto.ca)
 
 ## Table of Contents
 
