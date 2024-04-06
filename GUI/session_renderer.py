@@ -100,7 +100,6 @@ class SessionRenderer:
         upload_report, sec_report, existing_report = st.tabs(["Upload Report", "Fetch From SEC EDGAR", "Use Existing Report"])
         
         with upload_report:
-<<<<<<< HEAD
             uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
             st.markdown('Enter some info about the report')
 
@@ -139,49 +138,6 @@ class SessionRenderer:
             save_report = st.checkbox("Would you like to save the report for future use?", value=True)
 
             upload_submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
-=======
-            upload_form = st.form(key="u_form", clear_on_submit=True, border=False)
-            with upload_form:
-                uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
-                st.markdown('Enter some info about the report')
-
-                if "company_ticker" not in st.session_state:
-                    st.session_state["company_ticker"] = ""
-                if "year" not in st.session_state:
-                    st.session_state["year"] = ""
-                if "report_type" not in st.session_state:
-                    st.session_state["report_type"] = "10K"
-                if "report_type_other" not in st.session_state:
-                    st.session_state["report_type_other"] = ""
-                if "report_quarter" not in st.session_state:
-                    st.session_state["report_quarter"] = "Q1"
-
-                company_ticker = None
-                year = None
-                report_type = None
-                report_quarter = None
-                report_type_other = None
-
-                left_col, right_col = st.columns(2)
-                with left_col:
-                    company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
-                    report_type_options = ["10K","10Q", "Other"]
-                    report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
-
-
-                with right_col:
-                    year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
-                    if report_type == '10Q':
-                        report_quarter_options = ["Q1", "Q2", "Q3"]
-                        report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
-                    if report_type == 'Other':
-                        report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
-
-                save_report = st.checkbox("Would you like to save the report for future use?", value=True)
-
-                up_submitted = st.form_submit_button("Add Report", use_container_width=True)
->>>>>>> 8450965fe920e84ac7c8b79b6e9db1e27e3bb5db
-
         
         with sec_report:
             sec_api_key = st.text_input("SEC API Key", placeholder="Enter API Key", type="password", key="sec_api_key")
@@ -282,14 +238,8 @@ class SessionRenderer:
             
             self.clear_uploaded_files()
 
-<<<<<<< HEAD
-
         # file(s) submitted
         if upload_submitted:
-            print("submit pressed")
-=======
-        if up_submitted:
->>>>>>> 8450965fe920e84ac7c8b79b6e9db1e27e3bb5db
             if uploaded_file:
                 print("upload started")
                 report = None
@@ -332,9 +282,7 @@ class SessionRenderer:
             else:
                 st.warning("No file uploaded.")
 
-        # file(s) submitted
-        if submitted:
-            # handle reports that were added from saved reports
+        # handle reports that were added from saved reports
         if existing_submitted and selected_companies:
             for selected_company in selected_companies:
                 if selected_years and selected_report_types:
@@ -483,34 +431,38 @@ class SessionRenderer:
                 st.error("No session name was given. Please provide a session name")
 
             if submittable:
+                print(name)
+                print(self.global_singleton.chat_session_manager.sessions)
                 for ses in self.global_singleton.chat_session_manager.sessions:
                     if ses == name:
-                        st.error(f"The session name '{name}' is already being used. Please try another name.")
                         submittable = False
-                try:
-                    session = ChatSession(name=st.session_state.name,
-                                        #embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                        llm_chain=st.session_state.llm_chain,
-                                        retrieval_strategy=st.session_state.retrieval_strategy,
-                                        reports=st.session_state.reports,
-                                        memory_enabled=st.session_state.memory_enabled,
-                                        k=st.session_state.k,
-                                        k_i=st.session_state.k_i)
-                    del st.session_state["reports"]
-                    del st.session_state["name"]
-                    del st.session_state["memory_enabled"]
-                    del st.session_state["llm_chain"]
-                    del st.session_state["retrieval_strategy"]
-                    del st.session_state["k"]
-                    del st.session_state["k_i"]
-                    disable_active_session(self.global_singleton)
-                    self.global_singleton.chat_session_manager.add_session(session)
-                    self.global_singleton.chat_session_manager.set_active_session(session)
-                    st.session_state["global_singleton"] = self.global_singleton
-                    st.switch_page("pages/chat_page.py")
-                except Exception as e:
-                    print(e)
-                    st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
+                if submittable:
+                    try:
+                        session = ChatSession(name=st.session_state.name,
+                                            #embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                            llm_chain=st.session_state.llm_chain,
+                                            retrieval_strategy=st.session_state.retrieval_strategy,
+                                            reports=st.session_state.reports,
+                                            memory_enabled=st.session_state.memory_enabled,
+                                            k=st.session_state.k,
+                                            k_i=st.session_state.k_i)
+                        del st.session_state["reports"]
+                        del st.session_state["name"]
+                        del st.session_state["memory_enabled"]
+                        del st.session_state["llm_chain"]
+                        del st.session_state["retrieval_strategy"]
+                        del st.session_state["k"]
+                        del st.session_state["k_i"]
+                        disable_active_session(self.global_singleton)
+                        self.global_singleton.chat_session_manager.add_session(session)
+                        self.global_singleton.chat_session_manager.set_active_session(session)
+                        st.session_state["global_singleton"] = self.global_singleton
+                        st.switch_page("pages/chat_page.py")
+                    except Exception as e:
+                        print(e)
+                        st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
+                else:
+                    st.error(f"The session name '{name}' is already being used. Please try another name.")
 
     def render_create_benchmark(self):
         
