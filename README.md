@@ -76,13 +76,3 @@ If you have any questions or need assistance with the contribution process, feel
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-
-
-To start the Ollama model:
-Set the environment variable:
-    (bash)
-    export OLLAMA_MODELS=/groups/acmogrp/Large-Language-Model-Agent/language_models/ollama
-
-Then run the server under ./ollama:
-    ./ollama-linux-amd64 serve&
