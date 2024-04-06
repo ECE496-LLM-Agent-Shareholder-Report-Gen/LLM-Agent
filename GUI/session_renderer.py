@@ -137,7 +137,7 @@ class SessionRenderer:
 
             save_report = st.checkbox("Would you like to save the report for future use?", value=True)
 
-            submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
+            upload_submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
 
         
         with sec_report:
@@ -178,7 +178,7 @@ class SessionRenderer:
                 selected_quarters = st.multiselect("Quarter (if 10Q)", quarters)
                 pass
 
-            submitted = st.button("Add Report", use_container_width=True, key="existing_submit")
+            existing_submitted = st.button("Add Report", use_container_width=True, key="existing_submit")
 
         if sec_submitted:
             #handle fetching from sec edgar       
@@ -237,9 +237,12 @@ class SessionRenderer:
             
             self.clear_uploaded_files()
 
+
         # file(s) submitted
-        if submitted:
+        if upload_submitted:
+            print("submit pressed")
             if uploaded_file:
+                print("upload started")
                 report = None
                 if company_ticker and year and report_type:
                     if report_type == '10Q':
@@ -279,34 +282,34 @@ class SessionRenderer:
                     st.warning("Failed to add from uploaded reports: Missing report info")
             
             # handle reports that were added from saved reports
-            if selected_companies:
-                for selected_company in selected_companies:
-                    if selected_years and selected_report_types:
-                        for selected_year in selected_years:
-                            for selected_report_type in selected_report_types:
+        if existing_submitted and selected_companies:
+            for selected_company in selected_companies:
+                if selected_years and selected_report_types:
+                    for selected_year in selected_years:
+                        for selected_report_type in selected_report_types:
 
-                                if '10Q' in selected_report_types:
-                                    if selected_quarters:
-                                        for quarter in selected_quarters:
-                                            file_path = self.global_singleton.file_manager.get_file_path(selected_company, selected_year, selected_report_type, quarter)
-                                            report = Report(selected_company, selected_year, selected_report_type, quarter=quarter, file_path=file_path)
-                                            # Check if the report is already in st.session_state.reports
-                                            if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
-                                                st.session_state.reports.append(report)
-                                            elif len(st.session_state.reports) >= 10:
-                                                st.warning(f"Failed to add report '{os.path.basename(file_path)}', maximum number of reports (10) reached")
-                                    else:
-                                        st.warning("Failed to add from saved reports: Missing quarter for 10Qs")
+                            if '10Q' in selected_report_types:
+                                if selected_quarters:
+                                    for quarter in selected_quarters:
+                                        file_path = self.global_singleton.file_manager.get_file_path(selected_company, selected_year, selected_report_type, quarter)
+                                        report = Report(selected_company, selected_year, selected_report_type, quarter=quarter, file_path=file_path)
+                                        # Check if the report is already in st.session_state.reports
+                                        if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
+                                            st.session_state.reports.append(report)
+                                        elif len(st.session_state.reports) >= 10:
+                                            st.warning(f"Failed to add report '{os.path.basename(file_path)}', maximum number of reports (10) reached")
                                 else:
-                                    file_path = self.global_singleton.file_manager.get_file_path(selected_company, selected_year, selected_report_type)
-                                    report = Report(selected_company, selected_year, selected_report_type, file_path=file_path)
-                                    # Check if the report is already in st.session_state.reports
-                                    if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
-                                        st.session_state.reports.append(report)
-                                    elif len(st.session_state.reports) >= 10:
-                                        st.warning(f"Failed to add report '{os.path.basename(file_path)}', maximum number of reports (10) reached")
-                    else:
-                        st.warning("Failed to add from saved reports: Missing years/report types")
+                                    st.warning("Failed to add from saved reports: Missing quarter for 10Qs")
+                            else:
+                                file_path = self.global_singleton.file_manager.get_file_path(selected_company, selected_year, selected_report_type)
+                                report = Report(selected_company, selected_year, selected_report_type, file_path=file_path)
+                                # Check if the report is already in st.session_state.reports
+                                if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
+                                    st.session_state.reports.append(report)
+                                elif len(st.session_state.reports) >= 10:
+                                    st.warning(f"Failed to add report '{os.path.basename(file_path)}', maximum number of reports (10) reached")
+                else:
+                    st.warning("Failed to add from saved reports: Missing years/report types")
 
 
         # clear the inputs
