@@ -49,14 +49,14 @@ class BenchmarkRenderer:
     """ Adds data to session state.question_expected """
     def add_to_question_expected(self, data_list):
         flat_array = []
+        question_possibilities = ["question", "Question", "questions", "Questions", "QUESTIONS", "QUESTION"]
+        expected_possibilities = ["expected", "Expected", "EXPECTED", "expecteds", "Expecteds", "EXPECTEDS", "expected answer", "Expected Answer", "EXPECTED ANSWER", "expected answers", "Expected Answers", "EXPECTED ANSWERS", "expected_answer","Expected_Answer", "EXPECTED_ANSWER","expected_answers", "Expected_Answers", "EXPECTED_ANSWERS"]
+        llm_answer_possibilities = ["llm", "LLM", "answer", "Answer", "ANSWER", "answers", "Answers", "ANSWERS", "llm_answer", "LLM_answer", "LLM_ANSWER", "llm_answers", "LLM_answers", "LLM_ANSWERS"]
         for obj in data_list:
             question = ""
             expected = ""
             llm_answer = ""
             # do question
-            question_possibilities = ["question", "Question", "questions", "Questions", "QUESTIONS", "QUESTION"]
-            expected_possibilities = ["expected", "Expected", "EXPECTED", "expecteds", "Expecteds", "EXPECTEDS", "expected answer", "Expected Answer", "EXPECTED ANSWER", "expected answers", "Expected Answers", "EXPECTED ANSWERS", "expected_answer","Expected_Answer", "EXPECTED_ANSWER","expected_answers", "Expected_Answers", "EXPECTED_ANSWERS"]
-            llm_answer_possibilities = ["llm", "LLM", "answer", "Answer", "ANSWER", "answers", "Answers", "ANSWERS", "llm_answer", "LLM_answer", "LLM_ANSWER", "llm_answers", "LLM_answers", "LLM_ANSWERS"]
             for q in question_possibilities:
                 if q in obj:
                     question = obj[q]
@@ -69,18 +69,19 @@ class BenchmarkRenderer:
                 if q in obj:
                     llm_answer = obj[q]
                     break
-            
-            flat_array.append([question, expected, llm_answer])
+            if question and expected:
+                flat_array.append([question, expected, llm_answer])
         
         # add imported array to the list of QAs
         last_entry = None
-        if len(st.session_state.question_expected) > 0:
-            last_entry = st.session_state.question_expected[-1]
-            if last_entry[0].strip() == "" and last_entry[1].strip() == "" and last_entry[2].strip() == "":
-                st.session_state.question_expected.pop()
         if len(flat_array) < len(data_list):
             st.warning("Some of the items in your uploaded file could not be imported. Please check the 'Help' and ensure that your uploaded file follows the correct format.")
-        st.session_state.question_expected = st.session_state.question_expected + flat_array
+        else:
+            if len(st.session_state.question_expected) > 0:
+                last_entry = st.session_state.question_expected[-1]
+                if last_entry[0].strip() == "" and last_entry[1].strip() == "" and last_entry[2].strip() == "":
+                    st.session_state.question_expected.pop()
+            st.session_state.question_expected = st.session_state.question_expected + flat_array
 
     """ render help section """
     def render_help(self):
