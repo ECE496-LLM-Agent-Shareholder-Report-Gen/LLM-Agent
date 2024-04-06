@@ -205,38 +205,41 @@ class SessionRenderer:
 
 
             response = queryApi.get_filings(url_query)
-            url = json.dumps(response["filings"][0]["linkToFilingDetails"], indent=2).replace(
-                '"', ""
-            )
+            ok = len(response['filings']) > 0
+            print(ok)
+            if ok:
+                url = json.dumps(response["filings"][0]["linkToFilingDetails"], indent=2).replace(
+                    '"', ""
+                )
 
-            endpoint = "https://api.sec-api.io/filing-reader"
-            params = {
-                "url": url,
-                "token": sec_api_key,
-                "type": "pdf",
-            }
+                endpoint = "https://api.sec-api.io/filing-reader"
+                params = {
+                    "url": url,
+                    "token": sec_api_key,
+                    "type": "pdf",
+                }
 
-            response = requests.get(endpoint, params=params)
+                response = requests.get(endpoint, params=params)
 
-            tmp_location = os.path.join('/tmp', file_name)
-            with open(tmp_location, 'wb') as f:
-                f.write(response.content)
+                tmp_location = os.path.join('/tmp', file_name)
+                with open(tmp_location, 'wb') as f:
+                    f.write(response.content)
 
-            if sec_save_report:
-                file_path = self.global_singleton.file_manager.move_file(tmp_location, report.company, report.year, report.report_type)
-                report.file_path = file_path
+                if sec_save_report:
+                    file_path = self.global_singleton.file_manager.move_file(tmp_location, report.company, report.year, report.report_type)
+                    report.file_path = file_path
+                else:
+                    report.file_path = tmp_location
+
+                report.save = sec_save_report
+
+                # Check if the report is already in st.session_state.reports
+                if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
+                    st.session_state.reports.append(report)
+                elif len(st.session_state.reports) >= 10:
+                    st.warning(f"Failed to add report '{uploaded_file.name}', maximum number of reports (10) reached")
             else:
-                report.file_path = tmp_location
-
-            report.save = sec_save_report
-
-            # Check if the report is already in st.session_state.reports
-            if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
-                st.session_state.reports.append(report)
-            elif len(st.session_state.reports) >= 10:
-                st.warning(f"Failed to add report '{uploaded_file.name}', maximum number of reports (10) reached")
-            
-            self.clear_uploaded_files()
+                st.warning(f"Failed to fetch report, check filing information")
 
         # file(s) submitted
         if upload_submitted:
