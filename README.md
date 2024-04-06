@@ -42,6 +42,8 @@ To contribute to this project, please follow these guidelines:
 6. Submit a pull request, describing your changes in detail and mentioning any related issues.
 7. After submitting the pull request, our team will review your changes and provide feedback as needed.
 
+Please ensure that your contributions adhere to our [code of conduct](CODE_OF_CONDUCT.md).
+
 If you have any questions or need assistance with the contribution process, feel free to reach out to us by creating an issue.
 
 ## License
