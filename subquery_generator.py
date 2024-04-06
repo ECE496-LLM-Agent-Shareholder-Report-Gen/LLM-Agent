@@ -50,7 +50,6 @@ with the report title the step-back question can be answered with.\n
                             self.report_names.append(f"{company}_{year}_{report_type}_{quarter}")
 
         self.sub_query_system_message = self.sub_query_system_message_incomplete.replace("{report_titles}", "\n".join(self.report_names))
-        print(self.sub_query_system_message)
         self.sub_query_template = self.template_formatter.init_template(
             system_message= self.sub_query_system_message,
             instruction=self.sub_query_instruction
@@ -107,6 +106,7 @@ with the report title the step-back question can be answered with.\n
             return ""  
         if not match[3] in self.vectorstores[match[0]][match[1]][match[2]]:
             print(f"ERROR: unable to find {match[3]} in vectore[{match[0]}][{match[1]}][{match[2]}] dict!") 
+            return ""
         
         context = self.retriever_strategy.retrieve_context(match[4], vectorstore=self.vectorstores[match[0]][match[1]][match[2]][match[3]], k=k)
 
