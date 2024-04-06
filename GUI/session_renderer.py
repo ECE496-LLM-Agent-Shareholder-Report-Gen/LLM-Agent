@@ -100,6 +100,7 @@ class SessionRenderer:
         upload_report, sec_report, existing_report = st.tabs(["Upload Report", "Fetch From SEC EDGAR", "Use Existing Report"])
         
         with upload_report:
+<<<<<<< HEAD
             uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
             st.markdown('Enter some info about the report')
 
@@ -138,6 +139,48 @@ class SessionRenderer:
             save_report = st.checkbox("Would you like to save the report for future use?", value=True)
 
             upload_submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
+=======
+            upload_form = st.form(key="u_form", clear_on_submit=True, border=False)
+            with upload_form:
+                uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
+                st.markdown('Enter some info about the report')
+
+                if "company_ticker" not in st.session_state:
+                    st.session_state["company_ticker"] = ""
+                if "year" not in st.session_state:
+                    st.session_state["year"] = ""
+                if "report_type" not in st.session_state:
+                    st.session_state["report_type"] = "10K"
+                if "report_type_other" not in st.session_state:
+                    st.session_state["report_type_other"] = ""
+                if "report_quarter" not in st.session_state:
+                    st.session_state["report_quarter"] = "Q1"
+
+                company_ticker = None
+                year = None
+                report_type = None
+                report_quarter = None
+                report_type_other = None
+
+                left_col, right_col = st.columns(2)
+                with left_col:
+                    company_ticker = st.text_input("Company Ticker", placeholder="Company Ticker", max_chars=6, key="company_ticker")
+                    report_type_options = ["10K","10Q", "Other"]
+                    report_type = st.selectbox("Report Type", options=report_type_options, key="report_type")
+
+
+                with right_col:
+                    year = st.text_input("Year the report was filed", placeholder="Year", max_chars=4, key="year")
+                    if report_type == '10Q':
+                        report_quarter_options = ["Q1", "Q2", "Q3"]
+                        report_quarter = st.selectbox("Quarter", options=report_quarter_options, key="report_quarter")
+                    if report_type == 'Other':
+                        report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
+
+                save_report = st.checkbox("Would you like to save the report for future use?", value=True)
+
+                up_submitted = st.form_submit_button("Add Report", use_container_width=True)
+>>>>>>> 8450965fe920e84ac7c8b79b6e9db1e27e3bb5db
 
         
         with sec_report:
@@ -155,7 +198,6 @@ class SessionRenderer:
                 sec_submitted = st.form_submit_button("Add Report", use_container_width=True)
 
         with existing_report:
-            reports = ['AMD 2022 10K', 'AMD 2022 10Q Q1', 'AMD 2022 10Q Q2', 'AMD 2022 10Q Q3', 'INTC 2022 10K', 'INTC 2022 10Q Q1', 'INTC 2022 10Q Q2', 'INTC 2022 10Q Q3']
             saved_ticker_col, saved_year_col, saved_report_type_col, saved_quarter_col = st.columns(4)
             selected_companies = []
             selected_years = []
@@ -163,14 +205,17 @@ class SessionRenderer:
             selected_quarters = []
             with saved_ticker_col:
                 comps = self.global_singleton.file_manager.get_companies()
+                comps.sort()
                 selected_companies = st.multiselect("Company Ticker", comps)
                 pass
             with saved_year_col:
                 years = self.global_singleton.file_manager.get_years(selected_companies)
+                years.sort()
                 selected_years = st.multiselect("Year", years)
                 pass
             with saved_report_type_col:
                 report_types = self.global_singleton.file_manager.get_report_types(selected_companies, selected_years)
+                report_types.sort()
                 selected_report_types = st.multiselect("Report Type", report_types)
                 pass
             with saved_quarter_col:
@@ -237,10 +282,14 @@ class SessionRenderer:
             
             self.clear_uploaded_files()
 
+<<<<<<< HEAD
 
         # file(s) submitted
         if upload_submitted:
             print("submit pressed")
+=======
+        if up_submitted:
+>>>>>>> 8450965fe920e84ac7c8b79b6e9db1e27e3bb5db
             if uploaded_file:
                 print("upload started")
                 report = None
@@ -280,7 +329,11 @@ class SessionRenderer:
                     self.clear_uploaded_files()
                 else:
                     st.warning("Failed to add from uploaded reports: Missing report info")
-            
+            else:
+                st.warning("No file uploaded.")
+
+        # file(s) submitted
+        if submitted:
             # handle reports that were added from saved reports
         if existing_submitted and selected_companies:
             for selected_company in selected_companies:
@@ -376,7 +429,7 @@ class SessionRenderer:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=2)
+                    st.session_state.k = st.number_input("Number of documents to use as context (k)", min_value=0, step=1, value=8)
                 if strat['k_i_exists']:
                     with col2:
                         st.session_state.k_i = st.number_input("Initial number of documents to fetch (k_i)", min_value=0, step=1, value=100)
@@ -389,29 +442,29 @@ class SessionRenderer:
         container = st.container(border=False)
         strategies = [{
             'key': 'SC',
-            'title': 'Simple Chain',
-            'description': 'This input is passed to the language model, and the language model answers it directly.',
-        },
-        {
-            'key': 'A',
-            'title': 'Agent Chain',
-            'description': 'This input is passed to the language model, the language model then breaks the question down into smaller questions to ask about each shareholder report, and answers those questions. The answers to these smaller questions is fed as context to answer the original question',
-        },
-        {
-            'key': 'SbC',
-            'title': 'Stepback Chain',
-            'description': 'This input is passed to the language model, the language model then breaks the question down into smaller questions to ask about each shareholder report, and answers those questions. The answers to these smaller questions is fed as context to answer the original question',
+            'title': 'One-to-One Chain',
+            'description': 'The question is passed to the retriever which queries a single vector store containing all the shareholder reports for the session. The retriever returns a context. The LLM answers the original question using this context.',
         },
         {
             'key': 'SSbC',
-            'title': 'Simple Stepback Chain',
-            'description': 'This input is passed to the language model, the language model passes the question to each shareholder report, combines the context, and uses the context  to answer the  question',
+            'title': 'One-to-Many Chain',
+            'description': 'The question is passed to the retriever which queries every vector store. Each vector store contains at most one shareholder report. The retriever returns a context, and the LLM answers the original question using this context.',
         },
         {
             'key': 'FC',
-            'title': 'Fusion Chain',
-            'description': 'This input is passed to the language model, the language model passes the breaks the question down, and passes the smaller questions to the respective shareholder report. Context is retrieved and used to answer the original question',
+            'title': 'One-to-Many Multi-Query Chain',
+            'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers the original question using this context.',
             'k_i_exists': True
+        },
+        {
+            'key': 'SbC',
+            'title': 'One-to-Many Multi-Query Stepback Chain',
+            'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers each sub query using the context retrieved from that sub query. The LLM answers the original question using the answers from the sub queries.',
+        },
+        {
+            'key': 'A',
+            'title': 'ReAct Chain',
+            'description': 'The LLM answers the question through reasoning and acting. If the LLM needs a context to answer the question, it must reason it out itself, and must invoke the retriever through its actions.',
         }]
         with container:
             for strategy in strategies:
@@ -427,38 +480,40 @@ class SessionRenderer:
             submittable = True
             if not name:
                 submittable = False
+                st.error("No session name was given. Please provide a session name")
+
             if submittable:
                 for ses in self.global_singleton.chat_session_manager.sessions:
                     if ses == name:
                         st.error(f"The session name '{name}' is already being used. Please try another name.")
                         submittable = False
-            try:
-                session = ChatSession(name=st.session_state.name,
-                                    #embeddings_model_name=self.global_singleton.embeddings_model_name,
-                                    llm_chain=st.session_state.llm_chain,
-                                    retrieval_strategy=st.session_state.retrieval_strategy,
-                                    reports=st.session_state.reports,
-                                    memory_enabled=st.session_state.memory_enabled,
-                                    k=st.session_state.k,
-                                    k_i=st.session_state.k_i)
-                del st.session_state["reports"]
-                del st.session_state["name"]
-                del st.session_state["memory_enabled"]
-                del st.session_state["llm_chain"]
-                del st.session_state["retrieval_strategy"]
-                del st.session_state["k"]
-                del st.session_state["k_i"]
-                disable_active_session(self.global_singleton)
-                self.global_singleton.chat_session_manager.add_session(session)
-                self.global_singleton.chat_session_manager.set_active_session(session)
-                st.session_state["global_singleton"] = self.global_singleton
-                st.switch_page("pages/chat_page.py")
-            except Exception as e:
-                print(e)
-                st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
+                try:
+                    session = ChatSession(name=st.session_state.name,
+                                        #embeddings_model_name=self.global_singleton.embeddings_model_name,
+                                        llm_chain=st.session_state.llm_chain,
+                                        retrieval_strategy=st.session_state.retrieval_strategy,
+                                        reports=st.session_state.reports,
+                                        memory_enabled=st.session_state.memory_enabled,
+                                        k=st.session_state.k,
+                                        k_i=st.session_state.k_i)
+                    del st.session_state["reports"]
+                    del st.session_state["name"]
+                    del st.session_state["memory_enabled"]
+                    del st.session_state["llm_chain"]
+                    del st.session_state["retrieval_strategy"]
+                    del st.session_state["k"]
+                    del st.session_state["k_i"]
+                    disable_active_session(self.global_singleton)
+                    self.global_singleton.chat_session_manager.add_session(session)
+                    self.global_singleton.chat_session_manager.set_active_session(session)
+                    st.session_state["global_singleton"] = self.global_singleton
+                    st.switch_page("pages/chat_page.py")
+                except Exception as e:
+                    print(e)
+                    st.error("Something went wrong while creating the new session. This may have been due to a page reload in which some data was lost. Please try again.")
 
     def render_create_benchmark(self):
-        st.session_state.memory_enabled = st.checkbox("Would you like the language model to utilize previous Q&A's in the session to influence future answers (i.e., enable memory)?", key="mem_enabled" )
+        
         create_session = st.button("Create Session", use_container_width=True)
         if create_session:
             try:

@@ -2,7 +2,7 @@ import openai
 import requests
 
 def check_openai_api_key(api_key):
-    print("api key:", api_key)
+    print("opai api key:", api_key)
     if api_key is None:
         return False
     elif api_key == "":
@@ -12,13 +12,15 @@ def check_openai_api_key(api_key):
         try:
             client.models.list()
         except openai.AuthenticationError:
+            #print("dogru olmasina ragmen halisliyo")
             return False
         else:
+            #print("validke ")
             return True
 
 
 def check_hug_key(api_key):
-    print("api key:", api_key)
+    print("hug api key:", api_key)
     if api_key is None:
         return False
     elif api_key == "":

@@ -15,22 +15,19 @@ from template_formatter import LlamaTemplateFormatter
 class SubQueryGenerator:
 
     sub_query_system_message_incomplete = """
-        You are a helpful assistant who generates sub queries on questions. \
-        Here are some guidelines you must follow:\n \
-        * Never say thank you, that you are happy to help, that you are an AI agent, etc. Just answer directly.\n \
-        * The sub-queries must be simple sentences\n \
-        * the sub-queries must be about a particular report, out of the following \
-        report titles:\n \
-        {report_titles}\n \
-        * you must indicate the report each sub-query belongs right beside the \
-          sub query\n \
-        * If the question is not financial related, respectfully suggest that the \
-        user asks a financial-related question instead\n \
-        * if the question is already simple, do not generate any sub-queries, but associate the question with a report\n \ 
-        * answer each sub query in the format: <report_title> -- <subquery>\n \
-        Replace <subquery> \
-        with the sub query you generate, and <report_title> with the report title \
-        the sub query is on.
+You are an expert at financial advice. \
+Your task is to step back and paraphrase a question to more generic \
+step-back questions, which are easier to answer. Here are some guidelines:\n \
+* If the question is already easy to answer, the step-back questions should just be the original question.\n
+* The step-back questions must be derived from the original question such that \
+answering these step-back questions would help answer the original question.\n \
+* Each step-back question must be about a particular report, out of the \
+following report titles:\n \
+{report_titles}\n \
+* answer each step-back question in the format: <report_title> -- <step-back question>\n \
+Replace <step-back question> with the step-back question generate, and <report_title> \
+with the report title the step-back question can be answered with.\n
+* Do NOT put a report title any where except beside the step-back question.
         """.strip()
     
     sub_query_instruction = """{question}"""

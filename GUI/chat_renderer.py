@@ -1,6 +1,8 @@
 import json
 from random import randint
 import streamlit as st
+from streamlit_extras.stylable_container import stylable_container
+
 from streamlit_pdf_viewer import pdf_viewer
 from GUI.misc import check_session_valid, render_session_info
 from session import Report, Session
@@ -23,10 +25,10 @@ class ChatRenderer:
         self.render_header()
         tab1, tab2 = st.tabs(["Conversation", "PDFs"])
         with tab1:
-            self.render_conversation()
+            h_cont = self.render_conversation()
+        self.render_question(h_cont)
         with tab2:
             self.render_pdf()
-        self.render_question()
 
     def download_conversation_history(self):
         conv_history = [qa.encode() for qa in self.session.conversation_history]
@@ -43,62 +45,68 @@ class ChatRenderer:
     """ render conversation """
     def render_conversation(self):
         # Initialize chat history
-        h_cont = st.container(height=700, border=None)
-        with h_cont:
-            with st.chat_message("ai"):
-                st.markdown("What would you like to know?")
-
-            replay = None
-            replay_q = None
-            # Display chat messages from history on app rerun
-            for idx, qa in enumerate(self.session.conversation_history):
-                with st.chat_message("user"):
-                    st.markdown(qa.question)
-                    replay = st.button("↺", key=f"replay_{idx}")
-                    if replay:
-                        replay_q = qa
+        with stylable_container(key="no_border", css_styles="""
+                                div {
+                                    border: none;
+                                }"""):
+            h_cont = st.container(height=490, border=None)
+            with h_cont:
                 with st.chat_message("ai"):
-                    st.markdown(qa.answer)
+                    st.markdown("What would you like to know?")
 
-            if not self.session_valid:
-                st.warning(f"The current session is no longer valid because of the following missing reports: {self.missing_reports}. You can view this conversation's history but you can no longer ask questions in the current session.")
+                replay = None
+                replay_q = None
+                # Display chat messages from history on app rerun
+                for idx, qa in enumerate(self.session.conversation_history):
+                    with st.chat_message("user"):
+                        st.markdown(qa.question)
+                        replay = st.button("↺", key=f"replay_{idx}")
+                        if replay:
+                            replay_q = qa
+                    with st.chat_message("ai"):
+                        st.markdown(qa.answer.replace("\\\\$", "\\$"), unsafe_allow_html=True)
 
-            
-            if replay and replay_q:
-                # Display user message in chat message container
-                with st.chat_message("user"):
-                    st.markdown(replay_q.question)
+                if not self.session_valid:
+                    st.warning(f"The current session is no longer valid because of the following missing reports: {self.missing_reports}. You can view this conversation's history but you can no longer ask questions in the current session.")
+
+                
+                if replay and replay_q:
+                    # Display user message in chat message container
+                    with st.chat_message("user"):
+                        st.markdown(replay_q.question)
+                    if not self.session.initialized:
+                        with st.spinner("Loading session..."):
+                            isllama = "llama" in self.global_singleton.llm_model.lower()
+                            self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
+                    with st.chat_message("ai"):
+                        replays = replay_q.replays
+                        if replays == None:
+                            replays = 0
+                        full_response, context = self.session.chatbot.st_render(replay_q.question, replays+1)
+                        full_response = full_response
+                        self.session.add_to_conversation(replay_q.question, full_response, replays+1, context=context)
+                        st.rerun()
+        return h_cont
+
+    """ render question input """
+    def render_question(self, h_cont):
+        # Accept user input
+        placeholder_text = "Ask a question"
+        question = st.chat_input(placeholder_text, disabled=not self.session_valid)
+        with h_cont:
+            if question:
                 if not self.session.initialized:
                     with st.spinner("Loading session..."):
                         isllama = "llama" in self.global_singleton.llm_model.lower()
                         self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
+                # Display user message in chat message container
+                with st.chat_message("user"):
+                    st.markdown(question)
                 with st.chat_message("ai"):
-                    replays = replay_q.replays
-                    if replays == None:
-                        replays = 0
-                    full_response, context = self.session.chatbot.st_render(replay_q.question, replays+1)
-                    full_response = full_response
-                    self.session.add_to_conversation(replay_q.question, full_response, replays+1, context=context)
+                    #full_response = self.session.chatbot.invoke(question)
+                    full_response, context = self.session.chatbot.st_render(question)
+                    self.session.add_to_conversation(question, full_response, replays=0, context=context)
                     st.rerun()
-
-    """ render question input """
-    def render_question(self):
-        # Accept user input
-        placeholder_text = "Ask a question"
-        question = st.chat_input(placeholder_text, disabled=not self.session_valid)
-        if question:
-            if not self.session.initialized:
-                with st.spinner("Loading session..."):
-                    isllama = "llama" in self.global_singleton.llm_model.lower()
-                    self.session.initialize(self.global_singleton.index_generator, self.global_singleton.file_manager, self.global_singleton.llm, self.global_singleton.embeddings, cross_encoder=self.global_singleton.cross_encoder, isllama=isllama)
-            # Display user message in chat message container
-            with st.chat_message("user"):
-                st.markdown(question)
-            with st.chat_message("ai"):
-                #full_response = self.session.chatbot.invoke(question)
-                full_response, context = self.session.chatbot.st_render(question)
-                self.session.add_to_conversation(question, full_response, replays=0, context=context)
-                st.rerun()
 
     """ render pdf and context """
     def render_pdf(self):
@@ -112,12 +120,13 @@ class ChatRenderer:
             report_name_dict[name] = existing_file.file_path
         col1, col2 = st.columns(2)
         with col1:
-
-            report = st.selectbox("Select Report", report_name_dict.keys())
+            all_reports = list(report_name_dict.keys())
+            all_reports.sort()
+            report = st.selectbox("Select Report", all_reports)
         with col2:
             page = st.number_input("Page number", min_value=1, step=1)
         if report != None:
-            h_cont = st.container(height=800)
+            h_cont = st.container(border=True)
             with h_cont:
                 if page:
                     pdf_viewer(report_name_dict[report], width=670, pages_to_render=[page])
@@ -130,9 +139,9 @@ class ChatRenderer:
         question = st.selectbox("Question", question_context_dict.keys())
         if question != None:
             if question_context_dict[question] != None:
-                h_cont2 = st.container(height=700)
+                h_cont2 = st.container(height=480)
                 with h_cont2:
-                    st.markdown(question_context_dict[question].replace("$", "\$"))
+                    st.markdown(question_context_dict[question].replace("$", "\$"), unsafe_allow_html=True)
             else:
                 st.markdown("No context found for the specified question.")
 

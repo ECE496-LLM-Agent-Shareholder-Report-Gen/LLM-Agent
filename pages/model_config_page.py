@@ -3,6 +3,9 @@ from GUI.llm_select_renderer import LLMRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar
 
+st.set_page_config(
+    page_title=f"LLM Agent | Model Selection",
+)
 
 if not "global_singleton" in st.session_state:
     global_singleton = load_global_singleton()
@@ -12,7 +15,6 @@ else:
 
 #navbar(global_singleton)
 #old_llm = global_singleton.llm
-
 llm = LLMRenderer(global_singleton)
 llm.render()
 navbar(global_singleton)

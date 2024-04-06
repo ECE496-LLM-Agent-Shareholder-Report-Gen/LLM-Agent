@@ -30,7 +30,7 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
         relevant_documents = None
         for strategy in self.strategies:
             relevant_documents = strategy.retrieve_context(question=question, relevant_documents=relevant_documents, *args, **kwargs)
-        self.recent_context += f"Question: {question}\n\n"
+        self.recent_context += f"<b><i>Question: {question}</i></b>\n\n"
         return self.combine_context(relevant_documents)
     
     def combine_context(self, documents):
@@ -39,7 +39,7 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
             show_metadata = ", ".join([f"{metadata_key} {doc.metadata[metadata_key]}" for metadata_key in self.metadata if metadata_key in doc.metadata])
             context += f"Excerpt from {show_metadata}:\n\n{doc.page_content}\n\n\n"
         self.recent_context += context
-        self.recent_context += "=" * 50 
+        self.recent_context += "=" * 90 
         self.recent_context += "\n\n"
         return context
     
@@ -78,7 +78,6 @@ class SimpleRetrieverStrategy(RetrieverStrategy):
         if relevant_documents == None:
             relevant_documents = vs.similarity_search(question, k=k+self.skip*k, *args,**kwargs)
 
-        print("SIMPLE: SKIPPING ", self.skip*k)
         return relevant_documents[self.skip*k:]
 
     
@@ -105,7 +104,6 @@ class ReRankerRetrieverStrategy(RetrieverStrategy):
             # get relevant documents
             relevant_documents = vs.similarity_search(question,  k=self.init_k+self.skip*k, *args, **kwargs)
             relevant_documents = relevant_documents[self.skip*k:]
-            print("RERANKER: SKIPPING ", self.skip*k)
         scores = self.cross_encoder.predict([[question, document.page_content] for document in relevant_documents])
 
         for x in range(len(scores)):
@@ -146,7 +144,6 @@ class NextRetrieverStrategy(RetrieverStrategy):
         qc = 0
         if question in self.QCTable:
             qc = self.QCTable[question]
-            print("STRATEGY: Found in QCTable: ", question )
             self.QCTable[question] += 1
         else:
             self.QCTable[question] = 1
@@ -174,7 +171,6 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
         vs = self.vectorstore
         if vectorstore != None:
             vs = vectorstore
-            print("STRATEGY: Using self inserted vectorstore!")
         if vs == None:
             return []
         
@@ -194,7 +190,6 @@ class StochasticRetrieverStrategy(RetrieverStrategy):
         if relevant_documents == None:
             relevant_documents = vs.similarity_search(question, k=fetch_k+self.skip*k)
             relevant_documents = relevant_documents[self.skip*k:]
-            print("stochastic: SKIPPING ", self.skip*k)
 
         relevant_documents = random.sample(relevant_documents, k)
         return relevant_documents

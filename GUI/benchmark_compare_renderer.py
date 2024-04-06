@@ -1,7 +1,7 @@
 import json
 import streamlit as st
 import pandas as pd
-
+import altair as alt
 from GUI.misc import check_session_valid, render_session_info
 
 class BenchmarkCompareRenderer:
@@ -23,7 +23,8 @@ class BenchmarkCompareRenderer:
 
 
     def render_select(self):
-        sessions = self.benchmark_dict.keys()
+        sessions = list(self.benchmark_dict.keys())
+        sessions.sort()
         if len(sessions) > 0:
             st.session_state["selected_sessions"] = st.multiselect("Choose the benchmarks to compare", options=sessions)
         else:
@@ -52,7 +53,17 @@ class BenchmarkCompareRenderer:
         if len(data_raw) > 1:
             df = pd.DataFrame(data_raw).T
             df.columns = column_names
-            actual_columns = [n for n in column_names if n != "Q&A"]
-            st.bar_chart(data=df, x="Q&A", y=actual_columns )
+            # Melt the DataFrame to long format
+            data_melted = df.melt('Q&A', var_name='Benchmark', value_name='Similarity Score')
+            # Create a grouped bar chart
+            chart = alt.Chart(data_melted).mark_bar().encode(
+                x=alt.X('Q&A:O', axis=alt.Axis(title='Q&A',labelAngle=0)),
+                xOffset="Benchmark:N",
+                y=alt.Y('Similarity Score:Q', axis=alt.Axis(title='Similarity Score')),
+                color='Benchmark:N',
+            )
+            st.altair_chart(chart, use_container_width=True)
+            # st.bar_chart(data=df, x="Q&A", y=actual_columns )
         else:
             st.markdown("No data to display")
+        
