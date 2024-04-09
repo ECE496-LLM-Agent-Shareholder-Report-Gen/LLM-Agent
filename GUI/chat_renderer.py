@@ -69,7 +69,7 @@ class ChatRenderer:
                 if not self.session_valid:
                     st.warning(f"The current session is no longer valid because of the following missing reports: {self.missing_reports}. You can view this conversation's history but you can no longer ask questions in the current session.")
 
-                
+
                 if replay and replay_q:
                     # Display user message in chat message container
                     with st.chat_message("user"):
@@ -109,7 +109,7 @@ class ChatRenderer:
                             self.session.add_to_conversation(question, full_response, replays=0, context=context)
                             st.rerun()
                 except Exception as e:
-                    st.error("Oops! Somewthing went wrong.")
+                    st.error(f"Oops! Somewthing went wrong.{e}")
 
     """ render pdf and context """
     def render_pdf(self):

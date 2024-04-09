@@ -15,7 +15,7 @@ import streamlit as st
 import GUI.misc as Gmisc
 
 import sys
-sys.path.append('/groups/acmogrp/Large-Language-Model-Agent/llm_evaluator/model_testing/llm_agents')
+
 from llm_agents.agent import Agent
 from llm_agents.llm_wrap import LLM_Wrapper
 from llm_agents.tools.python_repl import PythonREPLTool
@@ -176,23 +176,19 @@ number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., h
 
 """ simple """
 class AgentChatbot(Chatbot):
+    system_message = """
+                You are a financial investment advisor who answers questions
+                about shareholder reports. You will be given a context and will answer the question using that context.
+                """
+    instruction = """
+                Context: "{context}"
+               \n\n
+                Question: "{question}"
 
-
-
-    #system_message = """
-    #            You are a financial investment advisor who answers questions
-    #            about shareholder reports. You will be given a context and will answer the question using that context.
-    #            """
-    #instruction = """
-    #           Context: "{context}"
-    #            \n\n
-    #            Question: "{question}"
-
-    #            \n\n
-    #            Make sure to source where you got the information from.
-    #            This source should include the company, year, the report type, and page number.
-    #            """
-    #
+                \n\n
+                Make sure to source where you got the information from.
+                This source should include the company, year, the report type, and page number.
+                """
 
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):

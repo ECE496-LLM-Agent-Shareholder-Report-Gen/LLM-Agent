@@ -1,6 +1,11 @@
 import sys
 sys.path.append('/groups/acmogrp/Large-Language-Model-Agent/llm_evaluator/model_testing/llm_agents')
 
+#code structure taken from
+#https://github.com/mpaepper/llm_agents
+#https://github.com/mpaepper/llm_agents/blob/main/LICENSE
+#Copyright (c) 2023 Marc Päpper
+
 import datetime
 import re
 
