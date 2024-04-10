@@ -359,12 +359,7 @@ class SessionRenderer:
             'k_i_exists': True
         },
 
-        {
-            'key': 'RRS',
-            'title': 'Random Retrieval Strategy',
-            'description': 'This strategy passes an input to the vector store, returns k_i documents, and out of those k documents, it randomly chooses k to pass as context.',
-            'k_i_exists': True
-        }]
+       ]
         container = st.container(border=False)
         with container:
             for strategy in strategies:
@@ -394,23 +389,23 @@ class SessionRenderer:
         container = st.container(border=False)
         strategies = [{
             'key': 'SC',
-            'title': 'One-to-One Chain',
+            'title': 'Merged Chain',
             'description': 'The question is passed to the retriever which queries a single vector store containing all the shareholder reports for the session. The retriever returns a context. The LLM answers the original question using this context.',
         },
         {
             'key': 'SSbC',
-            'title': 'One-to-Many Chain',
+            'title': 'Split Chain',
             'description': 'The question is passed to the retriever which queries every vector store. Each vector store contains at most one shareholder report. The retriever returns a context, and the LLM answers the original question using this context.',
         },
         {
             'key': 'FC',
-            'title': 'One-to-Many Multi-Query Chain',
+            'title': 'Multi-Query Split Chain',
             'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers the original question using this context.',
             'k_i_exists': True
         },
         {
             'key': 'SbC',
-            'title': 'One-to-Many Multi-Query Stepback Chain',
+            'title': 'Multi-Query Split Step-Back Chain',
             'description': 'The question is passed to the LLM and generates sub queries. Each sub query pertains to a single vector store. Each vector store contains at most one shareholder report. The retriever returns context for each sub query. The LLM answers each sub query using the context retrieved from that sub query. The LLM answers the original question using the answers from the sub queries.',
         },
         {
