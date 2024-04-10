@@ -269,7 +269,7 @@ class SessionRenderer:
                 if company_ticker and year and report_type:
                     if report_type == '10Q':
                         if report_quarter:
-                            report = Report(company_ticker.strip().upper(), year.strip(), report_type, report_quarter)
+                            report = Report(company_ticker.replace("/", "").strip().upper(), year.replace("/", "").strip(), report_type, report_quarter)
                         else:
                             st.warning("Failed to add from uploaded reports: Missing report info (quarter)")
 
@@ -277,9 +277,9 @@ class SessionRenderer:
                         if not report_type_other.strip():
                             st.warning("Failed to add from uploaded reports: Missing report info (report type)")
                             return
-                        report = Report(company_ticker.strip().upper(), year.strip(), report_type_other.strip())
+                        report = Report(company_ticker.replace("/", "").strip().upper(), year.replace("/", "").strip(), report_type_other.replace("/", "_").strip())
                     else:
-                        report = Report(company_ticker.strip().upper(), year.strip(), report_type)
+                        report = Report(company_ticker.replace("/", "").strip().upper(), year.replace("/", "").strip(), report_type)
 
                     tmp_location = os.path.join('/tmp', uploaded_file.name)
                     with open(tmp_location, 'wb') as out:
