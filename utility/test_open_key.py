@@ -2,6 +2,15 @@ import openai
 import requests
 
 def check_openai_api_key(api_key):
+    """
+    Checks if the provided OpenAI API key is valid.
+
+    Args:
+        api_key (str): The OpenAI API key to be checked.
+        
+    Returns:
+        bool: True if the API key is valid, False otherwise.
+    """
     if api_key is None:
         return False
     elif api_key == "":
@@ -17,6 +26,15 @@ def check_openai_api_key(api_key):
 
 
 def check_hug_key(api_key):
+    """
+    Checks if the provided Hugging Face API key is valid.
+
+    Args:
+        api_key (str): The Hugging Face API key to be checked.
+
+    Returns:
+        bool: True if the API key is valid, False otherwise.
+    """
     if api_key is None:
         return False
     elif api_key == "":

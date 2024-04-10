@@ -13,6 +13,37 @@ import config
 
 
 class GlobalSingleton:
+    """
+    Singleton class representing global state and configuration.
+
+    Attributes:
+        llm: Language model instance.
+        embeddings: Embeddings model instance.
+        cross_encoder: Cross-encoder model instance.
+        file_manager: File manager for content.
+        index_generator: Index generator for search.
+        chat_session_manager: Manager for chat sessions.
+        benchmark_session_manager: Manager for benchmark sessions.
+        content_path (str): Path to content directory.
+        chat_session_path (str): Path to chat session save file.
+        benchmark_session_path (str): Path to benchmark session save file.
+        llm_path (str): Path to language model.
+        llm_type (str): Type of language model.
+        llm_model (str): Specific language model name.
+        hug_llm_name (str): Hugging Face language model name.
+        hug_api_key (str): Hugging Face API key.
+        opai_api_key (str): OpenAI API key.
+        opai_llm_name (str): OpenAI language model name.
+        embeddings_model (str): Type of embeddings model.
+        cross_encoder_model (str): Cross-encoder model name.
+        embedding_type (str): Type of embeddings.
+        opai_embedding_name (str): OpenAI embeddings name.
+        hug_embedding_name (str): Hugging Face embeddings name.
+        hug_tokenizer: Tokenizer for Hugging Face model.
+        hug_model: Hugging Face model.
+        hug_pipe: Hugging Face pipeline.
+        llm_temp: Temporary language model storage.
+    """
     _instance = None
     llm = None
     embeddings = None
@@ -45,6 +76,17 @@ class GlobalSingleton:
     llm_temp = None
 
     def __new__(cls, content_path='./content/companies', chat_session_path='./saved_sessions.json', benchmark_session_path='./benchmark_session.json'):
+        """
+        Creates a new instance of GlobalSingleton.
+
+        Args:
+            content_path (str, optional): Path to content directory.
+            chat_session_path (str, optional): Path to chat session save file.
+            benchmark_session_path (str, optional): Path to benchmark session save file.
+
+        Returns:
+            GlobalSingleton: The singleton instance.
+        """
         if cls._instance is None:
             print('Creating the object')
             cls._instance = super(GlobalSingleton, cls).__new__(cls)
@@ -63,12 +105,12 @@ class GlobalSingleton:
             try:
                 cls._instance.chat_session_path = config.CHAT_SESSION_SAVE_FILE
             except:
-                cls._instance.chat_session_path = content_path
+                cls._instance.chat_session_path = chat_session_path
 
             try:
                 cls._instance.benchmark_session_path = config.BENCHMARK_SAVE_FILE
             except:
-                cls._instance.benchmark_session_path = content_path
+                cls._instance.benchmark_session_path = benchmark_session_path
 
             cls._instance.llm_path = None
             cls._instance.llm_model = None
@@ -97,16 +139,46 @@ class GlobalSingleton:
         return cls._instance
         
     def load_index_generator(self,index_name=None):
+        """
+        Loads the index generator.
+
+        Args:
+            index_name (str, optional): Name of the index.
+
+        Returns:
+            None
+        """
         self.index_generator = IndexGenerator(index_name=index_name)
     
     def load_file_manager(self, index_name=None):
+        """
+        Loads the file manager.
+
+        Args:
+            index_name (str, optional): Name of the index.
+
+        Returns:
+            None
+        """
         self.file_manager = FileManager(self.content_path, index_name=index_name)
         self.file_manager.load()
     
     def load_chat_session_manager(self):
+        """
+        Loads the chat session manager.
+
+        Returns:
+            None
+        """
         self.chat_session_manager = SessionManager(self.chat_session_path, _session_cls=ChatSession)
         self.chat_session_manager.load()
     
     def load_benchmark_session_manager(self):
+        """
+        Loads the benchmark session manager.
+
+        Returns:
+            None
+        """
         self.benchmark_session_manager = SessionManager(self.benchmark_session_path, _session_cls=BenchmarkSession)
         self.benchmark_session_manager.load()

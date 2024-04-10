@@ -115,7 +115,59 @@ mydict = {
 """        
     
 class FileManager:
+    """
+    A utility class for managing directories, files, and indexing within a specified path.
+
+    Args:
+        path (str): The base directory path.
+        index_name (str, optional): The name for the index directory (default is "index").
+
+    Attributes:
+        path (str): The base directory path.
+        index_name (str): The name for the index directory.
+
+    Methods:
+        - create_directory(directory_path: str) -> None:
+            Creates a directory if it doesn't exist.
+
+        - load() -> None:
+            Loads the directory structure into memory.
+
+        - move_file(src_file: str, company_name: str, year: int, report_type: str, quarter: str = None) -> str:
+            Moves and renames a file to a new location based on company, year, and report type.
+
+        - get_companies() -> List[str]:
+            Returns a list of company names available in the directory structure.
+
+        - get_years(companies: List[str]) -> List[int]:
+            Returns a sorted list of years available for the specified companies.
+
+        - get_report_types(companies: List[str], years: List[int]) -> List[str]:
+            Returns a sorted list of report types available for the specified companies and years.
+
+        - get_quarters(companies: List[str], years: List[int], report_types: List[str]) -> List[str]:
+            Returns a sorted list of quarters available for the specified companies, years, and report types.
+
+        - get_file_path(company: str, year: int, report_type: str, quarter: str = None) -> Optional[str]:
+            Returns the file path for a specific company, year, report type, and optional quarter.
+
+        - create_index(company: str, year: int, report_type: str, quarter: str = None) -> Optional[str]:
+            Creates an index directory path for a specific company, year, report type, and optional quarter.
+
+        - index_exists(company: str, year: int, report_type: str, quarter: str = None) -> bool:
+            Checks if an index exists for a specific company, year, report type, and optional quarter.
+
+        - generate_embeddings(index_gen, sp_company: str = None, sp_year: int = None) -> None:
+            Generates word embeddings for specified companies and years using an index generator.
+    """
     def __init__(self, path, index_name=None):
+        """
+        Initializes a FileManager instance.
+
+        Args:
+            path (str): The base directory path.
+            index_name (str, optional): The name of the index directory. Defaults to "index".
+        """
         self.path = path
         if index_name == None:
             self.index_name = "index"
@@ -124,6 +176,12 @@ class FileManager:
         self.create_directory(path)
         
     def create_directory(self, directory_path):
+        """
+        Creates a directory if it does not exist.
+
+        Args:
+            directory_path (str): The path of the directory to create.
+        """
         # Check if the directory exists
         if not os.path.exists(directory_path):
             # Create the directory
@@ -137,9 +195,25 @@ class FileManager:
 
     # gets companies using predefined directory structure
     def load(self):
+        """
+        Loads the directory structure into memory.
+        """
         self.dir_dict = self._create_dict(self.path)
 
     def move_file(self, src_file, company_name, year, report_type, quarter=None):
+        """
+        Moves a file to the specified directory and renames it.
+
+        Args:
+            src_file (str): The source file path.
+            company_name (str): The company name.
+            year (int): The year.
+            report_type (str): The report type.
+            quarter (str): The quarter (optional). Defaults to None.
+
+        Returns:
+            str: The new file path.
+        """
         # Construct the new directory path
         new_dir = os.path.join(self.path, company_name, str(year), report_type)
         if quarter:
@@ -167,6 +241,15 @@ class FileManager:
         return new_file_path
 
     def _create_dict(self, path):
+        """
+        Recursively creates a dictionary representing the directory structure.
+
+        Args:
+            path (str): The path to the root directory.
+
+        Returns:
+            dict: A dictionary representing the directory structure.
+        """
         dir_dict = {}
         for item in os.listdir(path):
             item_path = os.path.join(path, item)
@@ -182,20 +265,56 @@ class FileManager:
         return dir_dict
     
     def get_companies(self):
+        """
+        Returns a list of company names available in the directory structure.
+
+        Returns:
+            list: A list of company names.
+        """
         assert isinstance(self.dir_dict, dict)
         return list(self.dir_dict.keys())
 
     def get_years(self, companies):
+        """
+        Returns a list of years available for the specified companies.
+
+        Args:
+            companies (list): A list of company names.
+
+        Returns:
+            list: A list of years.
+        """
         if companies:
             return sorted(set.intersection(*(set(self.dir_dict[company].keys()) for company in companies)))
         return []
 
     def get_report_types(self, companies, years):
+        """
+        Returns a list of report types available for the specified companies and years.
+
+        Args:
+            companies (list): A list of company names.
+            years (list): A list of years.
+
+        Returns:
+            list: A list of report types.
+        """
         if companies and years:
             return sorted(set.intersection(*(set(self.dir_dict[company][year].keys()) for company in companies for year in years)))
         return []
 
     def get_quarters(self, companies, years, report_types):
+        """
+        Returns a list of quarters available for the specified companies, years, and report types.
+
+        Args:
+            companies (list): A list of company names.
+            years (list): A list of years.
+            report_types (list): A list of report types.
+
+        Returns:
+            list: A list of quarters.
+        """
         keys = [set(self.dir_dict[company][year][report_type].keys()) for company in companies for year in years for report_type in report_types if report_type == '10Q' and report_type in self.dir_dict[company][year]]
         if keys:
             return sorted(set.intersection(*keys))
@@ -203,6 +322,18 @@ class FileManager:
             return []
 
     def get_file_path(self, company, year, report_type, quarter=None):
+        """
+        Returns the file path for the specified company, year, report type, and quarter (if provided).
+
+        Args:
+            company (str): The company name.
+            year (str): The year.
+            report_type (str): The report type (e.g., '10K', '10Q').
+            quarter (str, optional): The quarter (e.g., 'Q1', 'Q2'). Defaults to None.
+
+        Returns:
+            str: The file path or None if not found.
+        """
         if quarter is not None:
             search_path = os.path.join(self.path, company, year, report_type, quarter)
         else:
@@ -216,6 +347,18 @@ class FileManager:
         return None
 
     def create_index(self, company, year, report_type, quarter=None):
+        """
+        Creates an index directory for the specified company, year, report type, and quarter (if provided).
+
+        Args:
+            company (str): The company name.
+            year (str): The year.
+            report_type (str): The report type (e.g., '10K', '10Q').
+            quarter (str, optional): The quarter (e.g., 'Q1', 'Q2'). Defaults to None.
+
+        Returns:
+            str: The index directory path or None if not found.
+        """
         dir_path = None
         if quarter!=None:
             dir_path = os.path.join(self.path, company, year, report_type, quarter, "index")
@@ -227,6 +370,18 @@ class FileManager:
             return None
 
     def index_exists(self, company, year, report_type, quarter=None):
+        """
+        Checks if an index exists for the specified company, year, report type, and quarter (if provided).
+
+        Args:
+            company (str): The company name.
+            year (str): The year.
+            report_type (str): The report type (e.g., '10K', '10Q').
+            quarter (str, optional): The quarter (e.g., 'Q1', 'Q2'). Defaults to None.
+
+        Returns:
+            bool: True if the index exists, False otherwise.
+        """
         if quarter != None:
             if "index_loc" in self.dir_dict[company][year][report_type][quarter]:
                 # print("file_manager - index_exists: true")
@@ -238,10 +393,15 @@ class FileManager:
         # print("file_manager - index_exists: false")
         return False
 
-    # create embeddings for all companies, years in directory structure
-    # if company is specified, generate word embeddings only for that company
-    # if year is specified along with company, generate word embeddings only for that company and year
     def generate_embeddings(self, index_gen, sp_company=None, sp_year=None):
+        """
+        Generates word embeddings for all companies and years in the directory structure.
+
+        Args:
+            index_gen: The index generator object.
+            sp_company (str, optional): The specific company name. Defaults to None.
+            sp_year (str, optional): The specific year. Defaults to None.
+        """
         # do a specific company if applicable
         dirs_to_gen = []
         if sp_company:
@@ -285,12 +445,34 @@ class FileManager:
                 
 
                     
-""" Session Manager
-manages the sessions created by the user.
-This includes loading up previous sessions, 
-saving them, and maintaining them """
 class SessionManager:
+    """
+    Manages sessions and provides methods for loading, saving, adding, and setting active sessions.
 
+    Args:
+        save_file (str, optional): Path to the file where session data will be saved. Defaults to None.
+        _session_cls (class, optional): Class representing individual sessions. Defaults to None.
+
+    Attributes:
+        sessions (dict): A dictionary to store session objects.
+        initialized (bool): Indicates whether the manager has been initialized.
+        active_session: The currently active session.
+        save_file (str): Path to the file where session data will be saved.
+        _session_cls (class): Class representing individual sessions.
+
+    Methods:
+        - load(): Loads session data from the specified file.
+        - save(): Saves session data to the specified file.
+        - add_session(session): Adds a session to the manager.
+        - set_active_session(session): Sets the active session.
+
+    Example usage:
+        session_manager = SessionManager(save_file="sessions.json", _session_cls=MySession)
+        session_manager.load()
+        session_manager.add_session(my_session)
+        session_manager.set_active_session(my_session)
+        session_manager.save()
+    """
     def __init__(self, save_file=None, _session_cls=None):
         self.sessions = None
         self.initialized = False
@@ -299,6 +481,15 @@ class SessionManager:
         self._session_cls = _session_cls
     
     def load(self):
+        """
+        Loads session data from the specified file.
+
+        Raises:
+            Exception: If there is an error during loading.
+
+        Example usage:
+            session_manager.load()
+        """
         ss_list = {}
         self.sessions = {}
         try:
@@ -315,6 +506,12 @@ class SessionManager:
         self.initialized = True
 
     def save(self):
+        """
+        Saves session data to the specified file.
+
+        Example usage:
+            session_manager.save()
+        """
         ss_list = {}
         os.makedirs(os.path.dirname(self.save_file), exist_ok=True)
         for name, session in self.sessions.items():
@@ -323,8 +520,25 @@ class SessionManager:
             json.dump(ss_list, json_file) 
     
     def add_session(self, session):
+        """
+        Adds a session to the manager.
 
+        Args:
+            session: An instance of the session class.
+
+        Example usage:
+            session_manager.add_session(my_session)
+        """
         self.sessions[session.name] = session
     
     def set_active_session(self, session):
+        """
+        Sets the active session.
+
+        Args:
+            session: An instance of the session class.
+
+        Example usage:
+            session_manager.set_active_session(my_session)
+        """
         self.active_session = session
