@@ -46,7 +46,6 @@ def load_llm_default(_global_singleton):
     # print("loading default llm")
     with st.spinner(text="Loading default llama2-13b-chat model – hang tight! This should take 1-2 minutes.") as spinner:
         return ChatOllama(base_url=config.OLLAMA_URL, model="llama2-13b-chat", verbose =True), "llama 2 13b chat"
-        #return LLMModelLoader(streaming=False, temperature=0).load_ollama(model="llama2-13b-chat"), "llama 2 13b chat"
 
 #@st.cache_resource
 def load_llm_llama(llm_path, llm_temp):
@@ -129,8 +128,11 @@ def load_word_embedder_huggingface(model_namee):
 #@st.cache_resource
 def load_word_embedder_default():
     with st.spinner(text="Loading default embedding model – hang tight! This should take 1-2 minutes."):
-        embeddings_loader = EmbeddingsLoader()
-        return embeddings_loader.load_bge(), embeddings_loader.model_name
+        try:
+            embeddings_loader = EmbeddingsLoader()
+            return embeddings_loader.load_bge(), embeddings_loader.model_name
+        except:
+            return None, None
 
 ##### cross encoder
 @st.cache_resource

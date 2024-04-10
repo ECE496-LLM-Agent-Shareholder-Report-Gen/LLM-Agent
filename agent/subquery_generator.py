@@ -10,6 +10,44 @@ from agent.template_formatter import LlamaTemplateFormatter
 
 """ Generates sub queries given a query """
 class SubQueryGenerator:
+    """
+    Generates sub queries given a query.
+
+    Attributes:
+        sub_query_system_message_incomplete (str): Incomplete system message for step-back guidelines.
+        sub_query_instruction (str): Instruction for sub queries.
+
+    Methods:
+        __init__(self, retriever_strategy, llm, vectorstores={}, max_k=8, template_formatter=LlamaTemplateFormatter(), *args, **kwargs):
+            Initializes a SubQueryGenerator instance.
+        
+        get_chain(self):
+            Returns the sub query processing chain.
+        
+        invoke(self, question):
+            Invokes the sub query processing chain on a given question.
+        
+        stream(self, question):
+            Streams the sub query processing chain on a given question.
+        
+        retrieve_context_from_year_match(self, match, k):
+            Retrieves context from a yearly report match.
+        
+        retrieve_context_from_quarter_match(self, match, k):
+            Retrieves context from a quarterly report match.
+        
+        retrieve_context_question_dict(self, match):
+            Given a single match, returns a dictionary with context and question.
+        
+        retrieve_contexts(self, matches):
+            Given a list of matches, returns a string of contexts.
+        
+        parse_questions(self, unparsed_questions):
+            Parses questions to extract matches.
+        
+        retriever_multicontext(self, llm_output):
+            Given an LLM output, returns a string of contexts.
+    """
 
     sub_query_system_message_incomplete = """
 You are an expert at financial advice. \
@@ -30,6 +68,18 @@ with the report title the step-back question can be answered with.\n
     sub_query_instruction = """{question}"""
 
     def __init__(self, retriever_strategy, llm, vectorstores={}, max_k=8, template_formatter=LlamaTemplateFormatter(), *args, **kwargs):
+        """
+        Initializes a SubQueryGenerator instance.
+
+        Args:
+            retriever_strategy: Retrieval strategy.
+            llm: Language model.
+            vectorstores (dict, optional): Dictionary of vector stores. Defaults to {}.
+            max_k (int, optional): Maximum number of retrieved documents. Defaults to 8.
+            template_formatter: Template formatter. Defaults to LlamaTemplateFormatter().
+            *args: Additional positional arguments.
+            **kwargs: Additional keyword arguments.
+        """
         self.retriever_strategy = retriever_strategy
         self.llm = llm
         self.vectorstores = vectorstores
@@ -64,16 +114,50 @@ with the report title the step-back question can be answered with.\n
         )
     
     def get_chain(self):
+        """
+        Returns the sub query processing chain.
+
+        Returns:
+            Chain: Sub query processing chain.
+        """
         return self.sub_query_chain
     
     def invoke(self, question):
+        """
+        Invokes the sub query processing chain on a given question.
+
+        Args:
+            question (str): Input question.
+
+        Returns:
+            str: Processed output.
+        """
         return self.sub_query_chain.invoke(question)
     
     def stream(self, question):
+        """
+        Streams the sub query processing chain on a given question.
+
+        Args:
+            question (str): Input question.
+
+        Returns:
+            str: Streamed output.
+        """
         return self.sub_query_chain.stream(question)
 
     """ given a yearly report match, get the context """
     def retrieve_context_from_year_match(self, match, k):
+        """
+        Retrieves context from a yearly report match.
+
+        Args:
+            match: Yearly report match.
+            k (int): Number of retrieved documents.
+
+        Returns:
+            str: Retrieved context.
+        """
         if not match[0] in self.vectorstores:
             print(f"ERROR: unable to find {match[0]} in vectore dict!")   
             return ""
@@ -90,6 +174,16 @@ with the report title the step-back question can be answered with.\n
 
     """ given a quarterly report match, get the context """
     def retrieve_context_from_quarter_match(self, match, k):
+        """
+        Retrieves context from a quarterly report match.
+
+        Args:
+            match: Quarterly report match.
+            k (int): Number of retrieved documents.
+
+        Returns:
+            str: Retrieved context.
+        """
         if not match[0] in self.vectorstores:
             print(f"ERROR: unable to find {match[0]} in vectore dict!")   
             return ""  
@@ -112,6 +206,15 @@ with the report title the step-back question can be answered with.\n
 
     """ Given a single match, return a question, context dict """
     def retrieve_context_question_dict(self, match):
+        """
+        Given a single match, returns a dictionary with context and question.
+
+        Args:
+            match: Matched report information.
+
+        Returns:
+            dict: Dictionary with context and question.
+        """
         context = ""
         question = ""
        
@@ -125,6 +228,15 @@ with the report title the step-back question can be answered with.\n
     
     """ Given a list of matches, return a string of contexts """
     def retrieve_contexts(self, matches):
+        """
+        Given a list of matches, returns a string of contexts.
+
+        Args:
+            matches: List of matched report information.
+
+        Returns:
+            str: Concatenated contexts.
+        """
         contexts = []
         if len(matches) == 0: 
             return None
@@ -155,6 +267,15 @@ with the report title the step-back question can be answered with.\n
         or company_year_10Q_quarter within each line
         """
     def parse_questions(self, unparsed_questions):
+        """
+        Parses questions to extract matches.
+
+        Args:
+            unparsed_questions (str): Unparsed questions.
+
+        Returns:
+            list: List of matches.
+        """
         self.fusion_output = unparsed_questions
         quarter_pattern = r"(\w+)[\\_]+(\d+)[\\_]+(10Q|10q)[\\_]+(Q1|Q2|Q3)\s--\s(.+)\?"
         yearly_pattern = r"(\w+)[\\_]+(\d+)[\\_]+([\da-zA-Z]+)\s--\s(.+)\?"
@@ -182,6 +303,15 @@ with the report title the step-back question can be answered with.\n
 
     """ Given an llm output, return a string of contexts """
     def retriever_multicontext(self, llm_output):
+        """
+        Given an LLM output, returns a string of contexts.
+
+        Args:
+            llm_output (str): LLM-generated output.
+
+        Returns:
+            str: Concatenated contexts.
+        """
         matches = self.parse_questions(llm_output)
         if len(matches) == 0: 
             return None
