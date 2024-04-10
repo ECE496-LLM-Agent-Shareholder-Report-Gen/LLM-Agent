@@ -38,7 +38,7 @@ class Session:
     """
 
     valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
-    valid_llm_chains = ["Merged Chain", "Split Chain", "Multi-Query Split Chain", "Multi-Query Split Stepback Chain", "ReAct Chain"]
+    valid_llm_chains = ["Merged Chain", "Split Chain", "Multi-Query Split Chain", "Multi-Query Split Step-Back Chain", "ReAct Chain"]
 
     def __init__(self,
                  name=None,
@@ -111,7 +111,7 @@ class Session:
             self.init_agent_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "Multi-Query Split Chain":
             self.init_fusion_chain(llm, isllama=isllama)
-        elif self.llm_chain == "Multi-Query Split Stepback Chain":
+        elif self.llm_chain == "Multi-Query Split Step-Back Chain":
             self.init_stepback_chain(llm, isllama=isllama)
         elif self.llm_chain == "Split Chain":
             self.init_simple_stepback_chain(llm, isllama=isllama)
