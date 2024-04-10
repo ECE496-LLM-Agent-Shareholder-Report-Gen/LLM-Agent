@@ -34,6 +34,7 @@ Capstone project for ECE496 at the University of Toronto.
    pip install -r requirements.txt
    ```
 6. (Optional) Run an Ollama server:
+
    a. Set your Ollama environment variable:
       ```console
       export OLLAMA_MODELS=<path to ollama models>
