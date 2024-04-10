@@ -4,7 +4,7 @@ import pandas as pd
 import altair as alt
 
 from GUI.misc import check_session_valid, render_session_info
-from cross_encode import compute_score
+from agent.cross_encode import compute_score
 
 class BenchmarkEvalRenderer:
 

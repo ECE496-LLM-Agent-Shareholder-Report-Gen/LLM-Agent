@@ -1,31 +1,16 @@
-from session import BenchmarkSession, ChatSession
-from util import FileManager, SessionManager
-from pre_processing import IndexGenerator
-import streamlit as st
-"""
-class GlobalSingleton:
+from utility.session import BenchmarkSession, ChatSession
+from utility.util import FileManager, SessionManager
+from agent.pre_processing import IndexGenerator
 
-    def __init__(self, content_path='./content/companies', session_path='./saved_sessions.json'):
-        self.llm = None
-        self.embeddings = None
-        self.cross_encoder = None
-        self.file_manager = FileManager(content_path)
-        self.session_manager = SessionManager(session_path)
-        self.index_generator = IndexGenerator()
-    
-        #vars for llm load:
-        self.llm_path = None
-        self.llm_type = None
-        self.hug_llm_name = None
-        self.hug_api_key = None
-        self.opai_api_key = None
-        
-    def load_file_manager(self):
-        self.file_manager.load()
-    
-    def load_session_manager(self):
-        self.session_manager.load()
-"""
+import os
+import sys
+
+# Add the parent directory to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now you can import your desired module
+import config
+
 
 class GlobalSingleton:
     _instance = None
@@ -70,15 +55,33 @@ class GlobalSingleton:
             cls._instance.index_generator = None
             cls._instance.chat_session_manager = None
             cls._instance.benchmark_session_manager = None
-            cls._instance.content_path = content_path
-            cls._instance.chat_session_path = chat_session_path
-            cls._instance.benchmark_session_path = benchmark_session_path
+            try:
+                cls._instance.content_path = config.CONTENT_DIR
+            except:
+                cls._instance.content_path = content_path
+
+            try:
+                cls._instance.chat_session_path = config.CHAT_SESSION_SAVE_FILE
+            except:
+                cls._instance.chat_session_path = content_path
+
+            try:
+                cls._instance.benchmark_session_path = config.BENCHMARK_SAVE_FILE
+            except:
+                cls._instance.benchmark_session_path = content_path
+
             cls._instance.llm_path = None
             cls._instance.llm_model = None
             cls._instance.llm_type = None
             cls._instance.hug_llm_name = None
-            cls._instance.hug_api_key = None
-            cls._instance.opai_api_key = None
+            try:
+                cls._instance.hug_api_key = config.HUGGING_FACE_ACCESS_TOKEN
+            except:
+                cls._instance.hug_api_key = None
+            try:
+                cls._instance.opai_api_key = config.OPENAI_API_KEY
+            except:
+                cls._instance.opai_api_key = None
             cls._instance.opai_llm_name = None
             cls._instance.embeddings_model = None
             cls._instance.cross_encoder_model = None
@@ -107,10 +110,3 @@ class GlobalSingleton:
     def load_benchmark_session_manager(self):
         self.benchmark_session_manager = SessionManager(self.benchmark_session_path, _session_cls=BenchmarkSession)
         self.benchmark_session_manager.load()
-"""
-    @staticmethod
-    def get_instance():
-        if not hasattr(GlobalSingleton, "_instance"):
-            GlobalSingleton._instance = GlobalSingleton()
-        return GlobalSingleton._instance
-"""

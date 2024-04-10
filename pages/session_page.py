@@ -1,4 +1,5 @@
 import streamlit as st
+
 from GUI.session_renderer import SessionRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar

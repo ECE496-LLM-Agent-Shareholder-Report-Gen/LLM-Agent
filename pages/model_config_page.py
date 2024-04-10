@@ -1,4 +1,5 @@
 import streamlit as st
+
 from GUI.llm_select_renderer import LLMRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar

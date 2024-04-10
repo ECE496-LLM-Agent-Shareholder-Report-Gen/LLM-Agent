@@ -1,7 +1,6 @@
 from langchain.document_loaders.pdf import PyPDFDirectoryLoader, PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores.faiss import FAISS
-import os
 
 """ IndexGenerator
 class for generating the vector stores

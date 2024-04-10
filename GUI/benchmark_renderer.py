@@ -1,12 +1,12 @@
-import json
-from random import randint
 import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
-from session import QAE, Report, Session
 
-import os
+from utility.session import QAE
+
+import json
 import io
 import csv
+
 import pandas as pd
 
 """Everything pertaining to the sessions for the GUI. 

@@ -1,8 +1,7 @@
 import streamlit as st
-import os
-from global_singleton import GlobalSingleton
+
 from GUI.shared import load_word_embedding
-from GUI.test_open_key import check_openai_api_key, check_hug_key
+from utility.test_open_key import check_openai_api_key
 
 
 class EmbeddingRenderer:

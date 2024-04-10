@@ -1,14 +1,10 @@
+from agent.chatbots import FusionChatbot, SimpleChatbot, SimpleStepbackChatbot, StepbackChatbot, AgentChatbot
+from agent.retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
+from agent.template_formatter import LlamaTemplateFormatter
+
 import os
-from langchain.document_loaders.pdf import PyPDFDirectoryLoader, PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores.faiss import FAISS
-
 import datetime
-import json
-from chatbots import FusionChatbot, SimpleChatbot, SimpleStepbackChatbot, StepbackChatbot, AgentChatbot
 
-from retriever_strategies import CompositeRetrieverStrategy, ReRankerRetrieverStrategy, SimpleRetrieverStrategy, StochasticRetrieverStrategy
-from template_formatter import LlamaTemplateFormatter
 
 """ Session
 holds the state of the session, which represents
@@ -16,7 +12,7 @@ a user-LLM interaction """
 class Session:
 
     valid_retrieval_strategies = ["Simple Retrieval Strategy", "Reranker Retrieval Strategy", "Random Retrieval Strategy"]
-    valid_llm_chains = ["One-to-One Chain", "One-to-Many Chain", "One-to-Many Multi-Query Chain", "One-to-Many Multi-Query Stepback Chain", "ReAct Chain"]
+    valid_llm_chains = ["Merged Chain", "Split Chain", "Multi-Query Split Chain", "Multi-Query Split Stepback Chain", "ReAct Chain"]
 
     def __init__(self,
                  name=None,
@@ -72,15 +68,15 @@ class Session:
         print("############### \n")
         print("loading chain \n")
 
-        if self.llm_chain == "One-to-One Chain":
+        if self.llm_chain == "Merged Chain":
             self.init_simple_chain(index_generator, llm, isllama=isllama)
         elif self.llm_chain == "ReAct Chain":
             self.init_agent_chain(index_generator, llm, isllama=isllama)
-        elif self.llm_chain == "One-to-Many Multi-Query Chain":
+        elif self.llm_chain == "Multi-Query Split Chain":
             self.init_fusion_chain(llm, isllama=isllama)
-        elif self.llm_chain == "One-to-Many Multi-Query Stepback Chain":
+        elif self.llm_chain == "Multi-Query Split Stepback Chain":
             self.init_stepback_chain(llm, isllama=isllama)
-        elif self.llm_chain == "One-to-Many Chain":
+        elif self.llm_chain == "Split Chain":
             self.init_simple_stepback_chain(llm, isllama=isllama)
         else:
             raise Exception("No Chatbot initialized")

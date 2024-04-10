@@ -1,4 +1,5 @@
 import streamlit as st
+
 from GUI.benchmark_eval_renderer import BenchmarkEvalRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar

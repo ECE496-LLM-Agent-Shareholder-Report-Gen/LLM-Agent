@@ -33,14 +33,16 @@ Capstone project for ECE496 at the University of Toronto.
    ```console
    pip install -r requirements.txt
    ```
-6. Set your Ollama environment variable:
-   ```console
-   export OLLAMA_MODELS=/groups/acmogrp/Large-Language-Model-Agent/language_models/ollama
-   ```
-7. Navigate to ollama folder and run Ollama server:
+6. (Optional) Run an Ollama server:
+   a. Set your Ollama environment variable:
+      ```console
+      export OLLAMA_MODELS=<path to ollama models>
+      ```
+   b. Navigate to ollama folder and run Ollama server:
    ```console
    ./ollama-linux-amd64 serve&
    ```
+7. Set folder paths and API Keys (optional) in the ```config.py``` file
 8. Run streamlit app:
    ```console
    streamlit run streamlit_app.py

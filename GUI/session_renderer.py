@@ -1,13 +1,21 @@
-import datetime
-from random import randint
 import streamlit as st
+
 from GUI.navbar import disable_active_session
-from session import QAE, BenchmarkSession, ChatSession, Report, Session
+from utility.session import BenchmarkSession, ChatSession, Report
+
 from sec_api import QueryApi
+
 import json, requests
+from random import randint
 
 import os
+import sys
 
+# Add the parent directory to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now you can import your desired module
+import config
 """Everything pertaining to the sessions for the GUI.
 This class creates the session itself, and is responsible for
 populating Sessions."""
@@ -140,7 +148,7 @@ class SessionRenderer:
             upload_submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
         
         with sec_report:
-            sec_api_key = st.text_input("SEC API Key", placeholder="Enter API Key", type="password", key="sec_api_key")
+            sec_api_key = st.text_input("SEC API Key", value=config.SEC_EDGAR_API_KEY, placeholder="Enter API Key", type="password", key="sec_api_key")
 
             with st.form(clear_on_submit=True, key="sec_form"):
                 left_col, right_col = st.columns(2)

@@ -1,25 +1,26 @@
+import streamlit as st
+
 # Langchain imports
-import math
-import time
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableLambda, RunnablePassthrough
 from operator import itemgetter
 
-from abc import ABC, abstractmethod
 
-from subquery_generator import SubQueryGenerator
-from template_formatter import LlamaTemplateFormatter, NoTemplateFormatter
-
-import streamlit as st
-import GUI.misc as Gmisc
-
-import sys
+from agent.subquery_generator import SubQueryGenerator
+from agent.template_formatter import NoTemplateFormatter
 
 from llm_agents.agent import Agent
 from llm_agents.llm_wrap import LLM_Wrapper
 from llm_agents.tools.python_repl import PythonREPLTool
 from llm_agents.tools.retriever_simple import RetrieverTool
+
+import GUI.misc as Gmisc
+
+import math
+import time
+from abc import ABC, abstractmethod
+
 
 
 class Chatbot(ABC):

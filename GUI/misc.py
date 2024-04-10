@@ -1,7 +1,5 @@
 import streamlit as st
 
-import os
-
 """ write stream from chatbot """
 def write_stream(stream):
     result = ""

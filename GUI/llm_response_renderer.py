@@ -1,6 +1,5 @@
 import streamlit as st
 
-import os
 
 """Everything pertaining to the sessions for the GUI. 
 This class creates the session itself, and is responsible for

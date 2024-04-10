@@ -1,12 +1,10 @@
-import json
-from random import randint
 import streamlit as st
 from streamlit_extras.stylable_container import stylable_container
-
 from streamlit_pdf_viewer import pdf_viewer
+
 from GUI.misc import check_session_valid, render_session_info
-from session import Report, Session
-import os
+
+import json
 
 """Everything pertaining to the sessions for the GUI.
 This class creates the session itself, and is responsible for

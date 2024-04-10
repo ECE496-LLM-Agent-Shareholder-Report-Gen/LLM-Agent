@@ -1,12 +1,22 @@
 import streamlit as st
-import os
+
 from GUI.embedding_renderer import EmbeddingRenderer
-from global_singleton import GlobalSingleton
-from model_loader import LLMModelLoader
-from GUI.shared import load_global_singleton, load_llm
-from GUI.test_open_key import check_openai_api_key, check_hug_key
+from GUI.shared import load_llm
+from GUI.navbar import navbar
+from utility.test_open_key import check_openai_api_key, check_hug_key
+
 import gc
 import torch
+
+import os
+import sys
+
+# Add the parent directory to the path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Now you can import your desired module
+import config
+
 #from GUI.navbar import navbar
 
 #from GUI.shared import 
@@ -30,11 +40,11 @@ class LLMRenderer:
         if "llm_type" not in st.session_state:
             st.session_state["llm_type"] = ""
         if "hug_api_key" not in st.session_state:
-            st.session_state["hug_api_key"] = ""
+            st.session_state["hug_api_key"] = self.global_singleton.hug_api_key
         if "hug_llm_name" not in st.session_state:
             st.session_state["hug_llm_name"] = ""
         if "opai_api_key" not in st.session_state:
-            st.session_state["opai_api_key"] = ""
+            st.session_state["opai_api_key"] = self.global_singleton.opai_api_key
         if "opai_llm_name" not in st.session_state:
             st.session_state["opai_llm_name"] = ""
 
@@ -127,7 +137,7 @@ class LLMRenderer:
             if self.llm_type == 'Huggingface':
                 self.load_button_block = False
                 self.hug_llm_name = st.text_input("LLM", placeholder="Model name",key="huggingface_LLM_name")#, key = "huggingface_model_name")
-                self.hug_api_key = st.text_input("Huggingface API access key", placeholder="Key",type='password',key = "huggingface_api_key_LLM")#, key="huggingface_api_key")
+                self.hug_api_key = st.text_input("Huggingface API access key", value=st.session_state["hug_api_key"],placeholder="Key",type='password',key = "huggingface_api_key_LLM")#, key="huggingface_api_key")
                 #self.hug_api_key = st.text_input("Please enter your Huggingface API access key", placeholder="Key")#, key="huggingface_api_key")
                 st.session_state["global_singleton"].hug_llm_name = self.hug_llm_name
                 st.session_state["global_singleton"].hug_api_key = self.hug_api_key
@@ -144,7 +154,7 @@ class LLMRenderer:
             if self.llm_type == "Openai":
                 self.load_button_block = False
                 self.opai_llm_name = st.selectbox("LLM", options=["gpt-4-turbo-preview","gpt-3.5-turbo"],key="opai_LLM_name")#options=list(LLMModelLoader.AVAILABLE_MODELS.keys()))#, key="llm_path")
-                self.opai_api_key = st.text_input("Openai API access key", placeholder="Key",type='password',key="opai_api_key_LLM")#, key="opai_api_key")
+                self.opai_api_key = st.text_input("Openai API access key", value=st.session_state["opai_api_key"],placeholder="Key",type='password',key="opai_api_key_LLM")#, key="opai_api_key")
                 st.session_state["global_singleton"].opai_api_key = self.opai_api_key
                 st.session_state["global_singleton"].llm_type = self.llm_type
                 self.global_singleton.opai_api_key = self.opai_api_key

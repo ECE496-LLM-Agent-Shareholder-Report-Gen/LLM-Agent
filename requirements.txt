@@ -13,7 +13,6 @@ backcall==0.2.0
 backoff==2.2.1
 bcrypt==4.0.1
 beautifulsoup4==4.12.3
-benchllm @ file:///nfs/ug/groups/acmogrp/Large-Language-Model-Agent/llm_evaluator/benchllm
 bitsandbytes==0.41.1
 blessed==1.20.0
 blinker==1.7.0

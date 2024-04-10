@@ -1,10 +1,7 @@
 import os
 import json
 import glob
-from pathlib import Path
 import shutil
-
-from session import Session
 
 
 """ Company Directory
@@ -314,12 +311,12 @@ class SessionManager:
             import traceback
             traceback.print_exc()
             print(e)
-        # print("done loading sessions: ", self.sessions)
 
         self.initialized = True
 
     def save(self):
         ss_list = {}
+        os.makedirs(os.path.dirname(self.save_file), exist_ok=True)
         for name, session in self.sessions.items():
             ss_list[name] = session.to_dict()
         with open(self.save_file, "w") as json_file:

@@ -1,4 +1,5 @@
 import streamlit as st
+
 from GUI.embedding_renderer import EmbeddingRenderer
 from GUI.shared import load_global_singleton
 from GUI.navbar import navbar

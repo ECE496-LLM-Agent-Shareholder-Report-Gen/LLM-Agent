@@ -3,6 +3,9 @@ test
 output
 content
 cache_dir
+content2
+sessions
+AMD 2022.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
