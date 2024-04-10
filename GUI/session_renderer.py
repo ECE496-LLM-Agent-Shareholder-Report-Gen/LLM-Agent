@@ -106,6 +106,7 @@ class SessionRenderer:
         st.subheader('Choose your Shareholder Reports', divider='grey')
 
         upload_report, sec_report, existing_report = st.tabs(["Upload Report", "Fetch From SEC EDGAR", "Use Existing Report"])
+        save_report = True
         
         with upload_report:
             uploaded_file = st.file_uploader('Upload your own shareholder reports', key=st.session_state["widget_key"])
@@ -143,14 +144,14 @@ class SessionRenderer:
                 if report_type == 'Other':
                     report_type_other = st.text_input("Please specify report type", placeholder="Other Report Type...", key="report_type_other")
 
-            save_report = st.checkbox("Would you like to save the report for future use?", value=True)
+            # save_report = st.checkbox("Would you like to save the report for future use?", value=True)
 
             upload_submitted = st.button("Add Report", use_container_width=True, key="upload_submit")
         
         with sec_report:
             sec_api_key = st.text_input("SEC API Key", value=config.SEC_EDGAR_API_KEY, placeholder="Enter API Key", type="password", key="sec_api_key")
 
-            with st.form(clear_on_submit=True, key="sec_form"):
+            with st.form(clear_on_submit=True, key="sec_form", border=False):
                 left_col, right_col = st.columns(2)
                 with left_col:
                     sec_filing_ticker = st.text_input("Company Ticker", placeholder="Enter Company Ticker...", max_chars=5, key="sec_filing_ticker_input")
@@ -158,7 +159,7 @@ class SessionRenderer:
                     sec_filing_year = st.text_input("10K Year", placeholder="Enter Report Year...", max_chars=4, key="sec_filing_year_input")
 
 
-                sec_save_report = st.checkbox("Would you like to save the report for future use?", value=True, key="sec_save")
+                # sec_save_report = st.checkbox("Would you like to save the report for future use?", value=True, key="sec_save")
                 sec_submitted = st.form_submit_button("Add Report", use_container_width=True)
 
         with existing_report:
@@ -197,15 +198,28 @@ class SessionRenderer:
             file_name = f'{sec_filing_ticker}_{sec_filing_year}.pdf'
             report.company = sec_filing_ticker
             report.year = sec_filing_year
-
+            sec_year = 0
+            try:
+                sec_year = int(sec_filing_year)
+            except:
+                st.error("The given year of the report is not a number")
+                return
+            if not sec_filing_ticker:
+                st.error("No company ticker was entered.")
+                return
             url_query = {
                 "query": {
                     "query_string": {
-                        "query": f'formType:"10-K" AND ticker:{sec_filing_ticker} AND filedAt:[{sec_filing_year}-01-01 TO {sec_filing_year}-12-31]',
+                        "query": f'formType:"10-K" AND ticker:{sec_filing_ticker} AND filedAt:[{sec_year}-01-01 TO {sec_year+1}-12-31]',
                     }
                 },
                 "from": "0",
                 "size": "1",
+                "sort": [{
+                    "filedAt": {
+                        "order": "desc"
+                    }
+                }]
             }
 
             #setting up sec-api key
@@ -232,13 +246,13 @@ class SessionRenderer:
                 with open(tmp_location, 'wb') as f:
                     f.write(response.content)
 
-                if sec_save_report:
+                if save_report:
                     file_path = self.global_singleton.file_manager.move_file(tmp_location, report.company, report.year, report.report_type)
                     report.file_path = file_path
                 else:
                     report.file_path = tmp_location
 
-                report.save = sec_save_report
+                report.save = save_report
 
                 # Check if the report is already in st.session_state.reports
                 if self.check_in_reports(report, st.session_state.reports) and len(st.session_state.reports) < 10:
@@ -255,14 +269,17 @@ class SessionRenderer:
                 if company_ticker and year and report_type:
                     if report_type == '10Q':
                         if report_quarter:
-                            report = Report(company_ticker.upper(), year, report_type, report_quarter)
+                            report = Report(company_ticker.strip().upper(), year.strip(), report_type, report_quarter)
                         else:
-                            st.warning("Failed to add from uploaded reports: Missing report info")
+                            st.warning("Failed to add from uploaded reports: Missing report info (quarter)")
 
                     elif report_type.lower() == 'other':
-                        report = Report(company_ticker.upper(), year, report_type_other)
+                        if not report_type_other.strip():
+                            st.warning("Failed to add from uploaded reports: Missing report info (report type)")
+                            return
+                        report = Report(company_ticker.strip().upper(), year.strip(), report_type_other.strip())
                     else:
-                        report = Report(company_ticker.upper(), year, report_type)
+                        report = Report(company_ticker.strip().upper(), year.strip(), report_type)
 
                     tmp_location = os.path.join('/tmp', uploaded_file.name)
                     with open(tmp_location, 'wb') as out:
@@ -287,7 +304,7 @@ class SessionRenderer:
                     report_type_other = None
                     self.clear_uploaded_files()
                 else:
-                    st.warning("Failed to add from uploaded reports: Missing report info")
+                    st.warning("Failed to add from uploaded reports: Missing report info (ticker/year)")
             else:
                 st.warning("No file uploaded.")
 
