@@ -172,7 +172,7 @@ with the report title the step-back question can be answered with.\n
                         if "sure" in line.lower():
                             continue
                         r_match = [r_part for r_part in report.split("_")]
-                        question = re.sub(rf".{re.escape(report)}.", "", line)
+                        question = line
                         r_match.append(question)
                         leftovers.append(tuple(r_match))
             return leftovers
