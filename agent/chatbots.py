@@ -236,7 +236,7 @@ Question: "{question}"
 \n\n
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
+number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). 
                 """.strip()
 
     def __init__(self, retriever_strategy, llm, vectorstore, *args, **kwargs):
@@ -563,7 +563,7 @@ class FusionChatbot(Chatbot):
 You are a helpful assistant. Answer questions given the context. \
 Make sure to source where you got information from (given in the context). \
 This source should include the company, year, the report type, (quarter if \
-possible) and page number. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
+possible) and page number. Do NOT provide any URLs (i.e., https://...). 
         """
 
     result_instruction = """
@@ -741,7 +741,7 @@ within the answers themselves. Answer the original question given the list of \
 questions and answers. \n\n \
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported in the answer. Do NOT provide any URLs (i.e., https://...). If there are no previous questions and answers, say 'No context was given'.
+number as reported in the answer. Do NOT provide any URLs (i.e., https://...). 
         """.strip()
 
     result_instruction = """
@@ -755,7 +755,7 @@ You are a helpful assistant. You will be given a context and will answer the \
 question using that context. Make sure to source where you got the \
 information from. This source should include the company, year, the report \
 type, the quarter if possible, and page number as reported at the start of the \
-Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
+Excerpt. Do NOT provide any URLs (i.e., https://...). 
         """.strip()
 
     simple_instruction = """
@@ -1017,7 +1017,7 @@ Given the context: "{context}"
 \n\n
 Make sure to source where you got the information from. This source should \
 include the company, year, the report type, the quarter if possible, and page \
-number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). If the context is empty, say 'No context was given'.
+number as reported at the start of the Excerpt. Do NOT provide any URLs (i.e., https://...). 
                 """.strip()
 
     """

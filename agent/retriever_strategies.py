@@ -100,8 +100,8 @@ class CompositeRetrieverStrategy(RetrieverStrategy):
         context = ""
         for doc in documents:
             show_metadata = ", ".join([f"{metadata_key} {doc.metadata[metadata_key]}" for metadata_key in self.metadata if metadata_key in doc.metadata])
-            context += f"Excerpt from {show_metadata}:\n\n[{doc.page_content}]\n\n\n\n"
-        self.recent_context += context
+            context += f"Excerpt from {show_metadata}: [{doc.page_content}]\n\n\n"
+            self.recent_context += f"<i>Excerpt from {show_metadata}:</i>\n\n{doc.page_content}\n\n\n"
         self.recent_context += "=" * 83 
         self.recent_context += "\n\n"
         return context

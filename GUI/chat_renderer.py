@@ -130,7 +130,7 @@ class ChatRenderer:
             h_cont = st.container(border=True)
             with h_cont:
                 if page:
-                    pdf_viewer(report_name_dict[report], width=670, pages_to_render=[page])
+                    pdf_viewer(report_name_dict[report], width=670, pages_to_render=[page], rendering="unwrap")
 
         question_context_dict = {}
         for idx, qa in enumerate(self.session.conversation_history):
